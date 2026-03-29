@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "VideoMaster",
-    "slug": "VideoMaster",
+    "name": "OnlineClasses",
+    "slug": "OnlineClasses",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "videomaster",
+    "scheme": "onlineclasses",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash-icon.png",
