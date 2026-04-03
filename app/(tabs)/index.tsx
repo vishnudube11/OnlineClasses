@@ -259,6 +259,12 @@ export default function CourseSelectionScreen() {
         >
           <View style={styles.heroContent}>
             <View style={styles.heroLeft}>
+              <View style={styles.brandRow}>
+                <View style={styles.brandBadge}>
+                  <Ionicons name="school" size={18} color="#fff" />
+                </View>
+                <Text style={styles.brandText}>Online Classes</Text>
+              </View>
               <Text style={styles.heroGreeting}>Welcome back,</Text>
               <Text style={styles.heroName}>{user?.name || "Student"} 👋</Text>
               <Text style={styles.heroSubtext}>
@@ -367,6 +373,26 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
     paddingHorizontal: 20,
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+  },
+  brandBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.92)",
+    letterSpacing: 0.4,
   },
   heroContent: {
     flexDirection: "row",

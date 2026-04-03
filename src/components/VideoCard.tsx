@@ -27,7 +27,7 @@ export default function VideoCard({
   // Pre-flatten into ONE object - no arrays ever reach the Slot
   const containerStyle = StyleSheet.flatten([
     cardWidth
-      ? { width: cardWidth, paddingHorizontal: 6, marginBottom: 20 }
+      ? { width: cardWidth, paddingHorizontal: 6, marginBottom: 14 }
       : styles.containerFlex,
     pressed ? { opacity: 0.75 } : {},
   ]);
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
   containerFlex: {
     width: "33.333%",
     paddingHorizontal: 6,
-    marginBottom: 20,
+    marginBottom: 14,
   },
   thumbnailContainer: {
     position: "relative",
     width: "100%",
     aspectRatio: 16 / 9,
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: "hidden",
     backgroundColor: "#1a1a1a",
   },
@@ -178,19 +178,19 @@ const styles = StyleSheet.create({
   },
   durationText: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
   },
   infoRow: {
     flexDirection: "row",
-    paddingTop: 8,
+    paddingTop: 6,
     alignItems: "flex-start",
   },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    marginRight: 7,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 6,
     marginTop: 1,
     backgroundColor: "#333",
     flexShrink: 0,
@@ -200,17 +200,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   title: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
-    lineHeight: 17,
+    lineHeight: 15,
     marginBottom: 2,
   },
   channelName: {
-    fontSize: 11,
+    fontSize: 10,
     marginBottom: 1,
   },
   meta: {
-    fontSize: 10,
+    fontSize: 9,
   },
   menuIcon: {
     padding: 2,

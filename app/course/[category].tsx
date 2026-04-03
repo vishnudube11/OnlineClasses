@@ -28,7 +28,6 @@ const CATEGORY_META: Record<
   "ui/ux design": { icon: "color-palette", gradient: ["#f39c12", "#d68910"] },
 };
 
-const NUM_COLS = 2;
 const H_PADDING = 12;
 
 export default function CourseSuggestionsScreen() {
@@ -36,6 +35,8 @@ export default function CourseSuggestionsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const { width } = useWindowDimensions();
+
+  const numCols = width >= 900 ? 4 : width >= 600 ? 3 : 2;
 
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function CourseSuggestionsScreen() {
   };
 
   // Each card gets an identical pixel width
-  const cardWidth = Math.floor((width - H_PADDING * 2) / NUM_COLS);
+  const cardWidth = Math.floor((width - H_PADDING * 2) / numCols);
 
   const uniqueVideos = (items: Video[]) => {
     const seen = new Set<string>();
@@ -175,11 +176,11 @@ export default function CourseSuggestionsScreen() {
               </View>
             ) : (
               // Chunk into rows so last-row cards are never stretched
-              Array.from({ length: Math.ceil(videos.length / NUM_COLS) }).map(
+              Array.from({ length: Math.ceil(videos.length / numCols) }).map(
                 (_, rowIdx) => {
                   const rowItems = videos.slice(
-                    rowIdx * NUM_COLS,
-                    rowIdx * NUM_COLS + NUM_COLS,
+                    rowIdx * numCols,
+                    rowIdx * numCols + numCols,
                   );
                   return (
                     <View key={rowIdx} style={styles.row}>
@@ -193,8 +194,8 @@ export default function CourseSuggestionsScreen() {
                         />
                       ))}
                       {/* Spacer cells to prevent stretching in last row */}
-                      {rowItems.length < NUM_COLS &&
-                        Array.from({ length: NUM_COLS - rowItems.length }).map(
+                      {rowItems.length < numCols &&
+                        Array.from({ length: numCols - rowItems.length }).map(
                           (_, k) => (
                             <View
                               key={`sp-${k}`}
