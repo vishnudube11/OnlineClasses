@@ -5,7 +5,7 @@ import VideoCard from "@/src/components/VideoCard";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
@@ -28,7 +28,7 @@ const CATEGORY_META: Record<
   "ui/ux design": { icon: "color-palette", gradient: ["#f39c12", "#d68910"] },
 };
 
-const NUM_COLS = 3;
+const NUM_COLS = 2;
 const H_PADDING = 12;
 
 export default function CourseSuggestionsScreen() {

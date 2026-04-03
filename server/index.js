@@ -5,13 +5,69 @@ const crypto = require("crypto");
 const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
 const Razorpay = require("razorpay");
 const ytdl = require("ytdl-core");
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+app.set("trust proxy", 1);
+
+const parseAllowedOrigins = (raw) => {
+  if (!raw) return [];
+  return String(raw)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
+const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.length === 0) return cb(null, true);
+      const ok = allowedOrigins.includes(origin);
+      return ok
+        ? cb(null, true)
+        : cb(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: false,
+    methods: ["GET", "POST", "OPTIONS"],
+  }),
+);
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
+
+app.use(express.json({ limit: "100kb" }));
+
+const defaultLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+app.use(defaultLimiter);
+
+const downloadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+
+const visitorsLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
 
 const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_SECRET, PORT } =
   process.env;
@@ -66,15 +122,19 @@ const incrementVisitorsHandler = (_req, res) => {
   return res.json({ count });
 };
 
-app.post("/api/visitors/increment", incrementVisitorsHandler);
-app.get("/api/visitors/increment", incrementVisitorsHandler);
+app.post("/api/visitors/increment", visitorsLimiter, incrementVisitorsHandler);
+app.get("/api/visitors/increment", visitorsLimiter, incrementVisitorsHandler);
 
-app.get("/api/youtube/download", async (req, res) => {
+app.get("/api/youtube/download", downloadLimiter, async (req, res) => {
   try {
     const { videoId } = req.query || {};
 
     if (!videoId || typeof videoId !== "string") {
       return res.status(400).json({ error: "videoId is required" });
+    }
+
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      return res.status(400).json({ error: "Invalid videoId" });
     }
 
     const info = await ytdl.getInfo(videoId);

@@ -89,6 +89,18 @@ const COURSES = [
     gradient: ["#e67e22", "#ca6f1e"] as const,
   },
   {
+    id: "21",
+    title: "Artificial Intelligence",
+    icon: "sparkles" as const,
+    gradient: ["#7f00ff", "#e100ff"] as const,
+  },
+  {
+    id: "22",
+    title: "Generative AI",
+    icon: "bulb" as const,
+    gradient: ["#00c6ff", "#0072ff"] as const,
+  },
+  {
     id: "15",
     title: "Data Science",
     icon: "stats-chart" as const,
