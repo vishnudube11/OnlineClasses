@@ -1,8 +1,17 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, useWindowDimensions, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '@/src/context/AuthContext';
+import { useAuth } from "@/src/context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef } from "react";
+import {
+    ActivityIndicator,
+    Animated,
+    Image,
+    Pressable,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
+} from "react-native";
 
 export default function LoginScreen() {
   const { login, isLoading } = useAuth();
@@ -15,32 +24,48 @@ export default function LoginScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
   return (
     <LinearGradient
-      colors={['#0a0a0a', '#111827', '#0f1a2e']}
+      colors={["#0a0a0a", "#111827", "#0f1a2e"]}
       style={styles.gradient}
     >
       {/* Decorative blobs */}
       <View style={[styles.blob, styles.blob1]} />
       <View style={[styles.blob, styles.blob2]} />
 
-      <Animated.View style={[
-        styles.card,
-        isTablet && styles.cardTablet,
-        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-      ]}>
+      <Animated.View
+        style={[
+          styles.card,
+          isTablet && styles.cardTablet,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+        ]}
+      >
         {/* Logo Area */}
         <View style={styles.logoArea}>
           <View style={styles.logoCircle}>
-            <Ionicons name="play" size={36} color="#fff" />
+            <Image
+              source={require("../assets/images/icon.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.brandName}>OnlineClasses</Text>
-          <Text style={styles.tagline}>Your gateway to unlimited knowledge.</Text>
+          <Text style={styles.tagline}>
+            Your gateway to unlimited knowledge.
+          </Text>
         </View>
 
         {/* Divider */}
@@ -52,13 +77,16 @@ export default function LoginScreen() {
 
         {/* Google Button */}
         <Pressable
-          style={({ pressed }) => [styles.googleButton, pressed && styles.buttonPressed]}
+          style={({ pressed }) => [
+            styles.googleButton,
+            pressed && styles.buttonPressed,
+          ]}
           onPress={login}
           disabled={isLoading}
         >
           {({ pressed }) => (
             <LinearGradient
-              colors={pressed ? ['#2a6fe0', '#1a5fd0'] : ['#4285F4', '#357ABD']}
+              colors={pressed ? ["#2a6fe0", "#1a5fd0"] : ["#4285F4", "#357ABD"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}
@@ -88,39 +116,39 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   blob: {
-    position: 'absolute',
+    position: "absolute",
     borderRadius: 9999,
     opacity: 0.15,
   },
   blob1: {
     width: 400,
     height: 400,
-    backgroundColor: '#ff0000',
+    backgroundColor: "#ff0000",
     top: -100,
     left: -100,
   },
   blob2: {
     width: 300,
     height: 300,
-    backgroundColor: '#4285F4',
+    backgroundColor: "#4285F4",
     bottom: -50,
     right: -50,
   },
   card: {
-    width: '90%',
+    width: "90%",
     maxWidth: 420,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 28,
     padding: 36,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: "rgba(255,255,255,0.1)",
     // Glass effect via shadow on web
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.5,
     shadowRadius: 40,
     shadowOffset: { width: 0, height: 20 },
@@ -130,54 +158,58 @@ const styles = StyleSheet.create({
     padding: 48,
   },
   logoArea: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 36,
   },
   logoCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#ff0000',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
-    shadowColor: '#ff0000',
+    shadowColor: "#ff0000",
     shadowOpacity: 0.5,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
   },
+  logoImage: {
+    width: 56,
+    height: 56,
+  },
   brandName: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: "bold",
+    color: "#ffffff",
     letterSpacing: -0.5,
     marginBottom: 8,
   },
   tagline: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
-    textAlign: 'center',
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
   },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   dividerText: {
-    color: 'rgba(255,255,255,0.3)',
+    color: "rgba(255,255,255,0.3)",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 1.5,
     marginHorizontal: 12,
   },
   googleButton: {
     borderRadius: 14,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 20,
   },
   buttonPressed: {
@@ -185,9 +217,9 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   buttonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 24,
   },
@@ -195,21 +227,21 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 6,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 14,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.2,
   },
   legalText: {
-    color: 'rgba(255,255,255,0.3)',
+    color: "rgba(255,255,255,0.3)",
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 18,
   },
 });

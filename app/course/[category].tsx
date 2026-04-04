@@ -7,13 +7,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 const CATEGORY_META: Record<
@@ -26,6 +28,25 @@ const CATEGORY_META: Record<
   "react native": { icon: "logo-react", gradient: ["#61dafb", "#21b6e0"] },
   "web development": { icon: "code-slash", gradient: ["#2ecc71", "#27ae60"] },
   "ui/ux design": { icon: "color-palette", gradient: ["#f39c12", "#d68910"] },
+  trending: { icon: "trending-up", gradient: ["#ff512f", "#dd2476"] },
+  ai: { icon: "sparkles", gradient: ["#7f00ff", "#e100ff"] },
+  genai: { icon: "bulb", gradient: ["#00c6ff", "#0072ff"] },
+  ml: { icon: "hardware-chip", gradient: ["#e67e22", "#ca6f1e"] },
+  data: { icon: "stats-chart", gradient: ["#2193b0", "#6dd5ed"] },
+  hindi: { icon: "globe", gradient: ["#f7971e", "#ffd200"] },
+  tamil: { icon: "globe", gradient: ["#fc4a1a", "#f7b733"] },
+  telugu: { icon: "globe", gradient: ["#00b09b", "#96c93d"] },
+  spanish: { icon: "globe", gradient: ["#00c6ff", "#0072ff"] },
+  french: { icon: "globe", gradient: ["#8360c3", "#2ebf91"] },
+  german: { icon: "globe", gradient: ["#232526", "#414345"] },
+  japanese: { icon: "globe", gradient: ["#c31432", "#240b36"] },
+  korean: { icon: "globe", gradient: ["#141e30", "#243b55"] },
+  "chinese (mandarin)": { icon: "globe", gradient: ["#ee0979", "#ff6a00"] },
+  italian: { icon: "globe", gradient: ["#56ab2f", "#a8e063"] },
+  russian: { icon: "globe", gradient: ["#0f2027", "#2c5364"] },
+  arabic: { icon: "globe", gradient: ["#41295a", "#2F0743"] },
+  portuguese: { icon: "globe", gradient: ["#11998e", "#38ef7d"] },
+  turkish: { icon: "globe", gradient: ["#ff5f6d", "#ffc371"] },
 };
 
 const H_PADDING = 12;
@@ -38,6 +59,31 @@ export default function CourseSuggestionsScreen() {
 
   const numCols = width >= 900 ? 4 : width >= 600 ? 3 : 2;
 
+  const filters = [
+    { key: "trending", label: "Trending", query: "trending" },
+    { key: "ai", label: "AI", query: "artificial intelligence" },
+    { key: "genai", label: "GenAI", query: "generative ai" },
+    { key: "ml", label: "ML", query: "machine learning" },
+    { key: "ds", label: "Data", query: "data science" },
+    { key: "hindi", label: "Hindi", query: "Hindi" },
+    { key: "tamil", label: "Tamil", query: "Tamil" },
+    { key: "telugu", label: "Telugu", query: "Telugu" },
+    { key: "spanish", label: "Spanish", query: "Spanish" },
+    { key: "french", label: "French", query: "French" },
+    { key: "german", label: "German", query: "German" },
+    { key: "japanese", label: "Japanese", query: "Japanese" },
+    { key: "korean", label: "Korean", query: "Korean" },
+    { key: "chinese", label: "Chinese (Mandarin)", query: "Chinese Mandarin" },
+    { key: "italian", label: "Italian", query: "Italian" },
+    { key: "russian", label: "Russian", query: "Russian" },
+    { key: "arabic", label: "Arabic", query: "Arabic" },
+    { key: "portuguese", label: "Portuguese", query: "Portuguese" },
+    { key: "turkish", label: "Turkish", query: "Turkish" },
+  ] as const;
+
+  const [activeFilterKey, setActiveFilterKey] =
+    useState<(typeof filters)[number]["key"]>("trending");
+
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>();
@@ -47,6 +93,16 @@ export default function CourseSuggestionsScreen() {
   const meta = CATEGORY_META[(category || "").toLowerCase()] || {
     icon: "school",
     gradient: ["#ff0000", "#cc0000"] as [string, string],
+  };
+
+  const activeFilter =
+    filters.find((f) => f.key === activeFilterKey) || filters[0];
+
+  const buildQuery = () => {
+    const cat = String(category || "").trim();
+    const base = cat ? `${cat} course tutorial` : "course tutorial";
+    if (activeFilter.key === "trending") return base;
+    return `${activeFilter.query} ${base}`;
   };
 
   // Each card gets an identical pixel width
@@ -64,12 +120,12 @@ export default function CourseSuggestionsScreen() {
 
   useEffect(() => {
     if (category) loadVideos();
-  }, [category]);
+  }, [category, activeFilterKey]);
 
   const loadVideos = async () => {
     setLoading(true);
     fadeAnim.setValue(0);
-    const data = await searchVideos(`${category} course tutorial`);
+    const data = await searchVideos(buildQuery());
     setVideos(uniqueVideos(data.videos));
     setNextPageToken(data.nextPageToken);
     setLoading(false);
@@ -83,10 +139,7 @@ export default function CourseSuggestionsScreen() {
   const loadMore = async () => {
     if (loadingMore || !nextPageToken || !category) return;
     setLoadingMore(true);
-    const data = await searchVideos(
-      `${category} course tutorial`,
-      nextPageToken,
-    );
+    const data = await searchVideos(buildQuery(), nextPageToken);
     setVideos((prev) => uniqueVideos([...prev, ...data.videos]));
     setNextPageToken(data.nextPageToken);
     setLoadingMore(false);
@@ -97,7 +150,11 @@ export default function CourseSuggestionsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.heroRow}>
         <View style={styles.heroIcon}>
-          <Ionicons name={meta.icon as any} size={26} color="#fff" />
+          <Image
+            source={require("../../assets/images/icon.png")}
+            style={styles.heroLogo}
+            resizeMode="contain"
+          />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.heroTitle}>{category}</Text>
@@ -158,6 +215,48 @@ export default function CourseSuggestionsScreen() {
               {videos.length} results
             </Text>
           </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtersScroll}
+            contentContainerStyle={[
+              styles.filtersContent,
+              { paddingHorizontal: H_PADDING },
+            ]}
+          >
+            {filters.map((f) => {
+              const active = f.key === activeFilterKey;
+              return (
+                <Pressable
+                  key={f.key}
+                  onPress={() => setActiveFilterKey(f.key)}
+                  style={({ pressed }) => [
+                    styles.filterChip,
+                    {
+                      backgroundColor: active
+                        ? theme.tint + "26"
+                        : theme.tabIconDefault + "14",
+                      borderColor: active
+                        ? theme.tint + "44"
+                        : theme.tabIconDefault + "22",
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: active ? theme.text : theme.tabIconDefault,
+                      fontSize: 12,
+                      fontWeight: active ? "700" : "600",
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
           {/* Grid */}
           <View style={[styles.grid, { paddingHorizontal: H_PADDING }]}>
@@ -244,6 +343,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  heroLogo: {
+    width: 34,
+    height: 34,
+  },
   heroTitle: {
     fontSize: 22,
     fontWeight: "bold",
@@ -269,6 +372,20 @@ const styles = StyleSheet.create({
   },
   sectionCount: {
     fontSize: 12,
+  },
+  filtersScroll: {
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  filtersContent: {
+    gap: 10,
+    paddingVertical: 6,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   grid: {},
   row: {

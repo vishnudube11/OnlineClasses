@@ -2,11 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Link, Tabs } from "expo-router";
 import React from "react";
 import {
+    Image,
     Pressable,
     StyleSheet,
     Text,
     useWindowDimensions,
-    View
+    View,
 } from "react-native";
 
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
@@ -41,7 +42,11 @@ function CustomHeader() {
       {/* Logo */}
       <View style={styles.logoContainer}>
         <View style={styles.logoIconBg}>
-          <Ionicons name="play" size={16} color="#fff" />
+          <Image
+            source={require("../../assets/images/icon.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
         {isWide && (
           <Text style={[styles.logoText, { color: theme.text }]}>
@@ -198,6 +203,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#ff0000",
     alignItems: "center",
     justifyContent: "center",
+  },
+  logoImage: {
+    width: 20,
+    height: 20,
   },
   logoText: {
     fontSize: 18,
