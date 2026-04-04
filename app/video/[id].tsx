@@ -57,8 +57,11 @@ export default function VideoScreen() {
   const [saving, setSaving] = useState(false);
   const [resumeSec, setResumeSec] = useState<number | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(true);
+  const [playerKey, setPlayerKey] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const playerRef = useRef<any>(null);
+  const playerWrapperRef = useRef<any>(null);
 
   // Fit player without scrolling
   const maxSafeHeight = height * 0.85;
@@ -70,10 +73,97 @@ export default function VideoScreen() {
   const cardWidth = Math.floor((width - H_PADDING * 2) / NUM_COLS);
 
   useEffect(() => {
+    // When navigating to a different video on web, the same screen can stay mounted.
+    // Ensure the previous iframe/player is stopped so it doesn't keep playing.
+    setPlaying(false);
+    try {
+      playerRef.current?.stopVideo?.();
+      playerRef.current?.pauseVideo?.();
+    } catch {
+      // ignore
+    }
+
+    if (Platform.OS === "web") {
+      setShowPlayer(false);
+      try {
+        const node = playerWrapperRef.current;
+        const el = node && (node as any).querySelector ? (node as any) : null;
+        if (el) {
+          const iframes = el.querySelectorAll(
+            'iframe[src*="youtube"],iframe[src*="youtube-nocookie"],iframe[src*="youtu.be"]',
+          );
+          iframes.forEach((i: any) => {
+            try {
+              i.src = "about:blank";
+            } catch {
+              // ignore
+            }
+            try {
+              i.remove();
+            } catch {
+              // ignore
+            }
+          });
+        }
+      } catch {
+        // ignore
+      }
+
+      // Some web implementations mount the YouTube iframe outside of the wrapper.
+      // Do a global cleanup as a last resort to avoid background audio.
+      try {
+        if (typeof document !== "undefined") {
+          const globalIframes = document.querySelectorAll(
+            'iframe[src*="youtube"],iframe[src*="youtube-nocookie"],iframe[src*="youtu.be"]',
+          );
+          globalIframes.forEach((i: any) => {
+            try {
+              i.src = "about:blank";
+            } catch {
+              // ignore
+            }
+            try {
+              i.remove();
+            } catch {
+              // ignore
+            }
+          });
+        }
+      } catch {
+        // ignore
+      }
+
+      const t = setTimeout(() => {
+        setPlayerKey((k) => k + 1);
+        setShowPlayer(true);
+      }, 50);
+      return () => {
+        clearTimeout(t);
+        try {
+          playerRef.current?.stopVideo?.();
+          playerRef.current?.pauseVideo?.();
+        } catch {
+          // ignore
+        }
+      };
+    }
+
+    return () => {
+      try {
+        playerRef.current?.stopVideo?.();
+        playerRef.current?.pauseVideo?.();
+      } catch {
+        // ignore
+      }
+    };
+  }, [id, type]);
+
+  useEffect(() => {
     if (id) loadVideo(id);
   }, [id]);
 
   const loadVideo = async (videoId: string) => {
+    setPlaying(false);
     setLoading(true);
     fadeAnim.setValue(0);
     const data =
@@ -259,6 +349,7 @@ export default function VideoScreen() {
         >
           {/* ── Player ── */}
           <View
+            ref={playerWrapperRef}
             style={[
               styles.playerWrapper,
               {
@@ -268,40 +359,43 @@ export default function VideoScreen() {
               },
             ]}
           >
-            <YoutubePlayer
-              ref={playerRef}
-              height={playerHeight}
-              width={playerWidth}
-              play={playing}
-              videoId={type === "playlist" ? undefined : video.id}
-              playList={type === "playlist" ? video.id : undefined}
-              onChangeState={onStateChange}
-              onReady={async () => {
-                setPlayerReady(true);
-                try {
-                  if (
-                    type !== "playlist" &&
-                    typeof resumeSec === "number" &&
-                    resumeSec > 2
-                  ) {
-                    await playerRef.current?.seekTo?.(resumeSec, true);
+            {showPlayer && (
+              <YoutubePlayer
+                key={`${playerKey}:${type === "playlist" ? "playlist" : "video"}:${video.id}`}
+                ref={playerRef}
+                height={playerHeight}
+                width={playerWidth}
+                play={playing}
+                videoId={type === "playlist" ? undefined : video.id}
+                playList={type === "playlist" ? video.id : undefined}
+                onChangeState={onStateChange}
+                onReady={async () => {
+                  setPlayerReady(true);
+                  try {
+                    if (
+                      type !== "playlist" &&
+                      typeof resumeSec === "number" &&
+                      resumeSec > 2
+                    ) {
+                      await playerRef.current?.seekTo?.(resumeSec, true);
+                    }
+                  } catch {
+                    // ignore
                   }
-                } catch {
-                  // ignore
-                }
-              }}
-              webViewStyle={{ backgroundColor: "black", overflow: "hidden" }}
-              webViewProps={{
-                scrollEnabled: false,
-                allowsInlineMediaPlayback: true,
-                mediaPlaybackRequiresUserAction: false,
-              }}
-              initialPlayerParams={{
-                modestbranding: true,
-                rel: false,
-                iv_load_policy: 3,
-              }}
-            />
+                }}
+                webViewStyle={{ backgroundColor: "black", overflow: "hidden" }}
+                webViewProps={{
+                  scrollEnabled: false,
+                  allowsInlineMediaPlayback: true,
+                  mediaPlaybackRequiresUserAction: false,
+                }}
+                initialPlayerParams={{
+                  modestbranding: true,
+                  rel: false,
+                  iv_load_policy: 3,
+                }}
+              />
+            )}
           </View>
 
           {/* ── Video Info Card ── */}
