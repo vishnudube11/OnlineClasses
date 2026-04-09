@@ -1,8 +1,9 @@
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
-import { createOrder, verifyPayment } from "@/src/api/razorpay";
+import { createOrder, markPaid, verifyPayment } from "@/src/api/razorpay";
+import { auth } from "@/src/firebase";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Platform,
@@ -237,6 +238,31 @@ export default function PayScreen() {
         }
 
         if (verification.verified) {
+          try {
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+              setError("Please login to complete payment.");
+              return;
+            }
+
+            const idToken = await currentUser.getIdToken();
+            await markPaid(
+              {
+                category: categoryStr,
+                amount: amount / 100, // Convert from paise to INR
+                currency: "INR",
+                razorpay_order_id: r.razorpay_order_id,
+                razorpay_payment_id: r.razorpay_payment_id,
+                razorpay_signature: r.razorpay_signature,
+              },
+              idToken,
+            );
+          } catch (markErr: any) {
+            console.error("Failed to mark payment as paid:", markErr);
+            setError("Failed to save payment status. Please contact support.");
+            return;
+          }
+
           router.replace({
             pathname: "/course/[category]",
             params: { category: categoryStr },
