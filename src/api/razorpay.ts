@@ -43,3 +43,30 @@ export const verifyPayment = async (params: {
   );
   return res.data;
 };
+
+export interface MarkPaidParams {
+  category: string;
+  amount: number;
+  currency?: string;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export const markPaid = async (
+  params: MarkPaidParams,
+  idToken: string,
+): Promise<{ ok: boolean }> => {
+  const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error("Missing EXPO_PUBLIC_API_BASE_URL");
+  }
+
+  const res = await axios.post(`${baseUrl}/api/payments/mark-paid`, params, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  return res.data;
+};
