@@ -8,6 +8,7 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
+const admin = require("firebase-admin");
 const Razorpay = require("razorpay");
 const ytdl = require("ytdl-core");
 
@@ -83,9 +84,63 @@ const {
   RAZORPAY_SECRET,
   PORT,
   YOUTUBE_API_KEY,
+  FIREBASE_SERVICE_ACCOUNT_JSON,
+  FIREBASE_SERVICE_ACCOUNT_PATH,
 } = process.env;
 
 const razorpaySecret = RAZORPAY_KEY_SECRET || RAZORPAY_SECRET;
+
+let firestore = null;
+
+try {
+  const rawSvcJson =
+    FIREBASE_SERVICE_ACCOUNT_JSON ||
+    (FIREBASE_SERVICE_ACCOUNT_PATH
+      ? fs.readFileSync(FIREBASE_SERVICE_ACCOUNT_PATH, "utf8")
+      : null);
+
+  if (rawSvcJson) {
+    const svc = JSON.parse(rawSvcJson);
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(svc),
+      });
+    }
+    firestore = admin.firestore();
+  } else {
+    console.warn(
+      "Missing FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_PATH in server env. Payment status endpoints will be disabled.",
+    );
+  }
+} catch (err) {
+  console.error("Failed to init firebase-admin:", err);
+}
+
+const getBearerToken = (req) => {
+  const raw = req.headers.authorization;
+  if (!raw) return null;
+  const m = String(raw).match(/^Bearer\s+(.+)$/i);
+  return m ? m[1] : null;
+};
+
+const requireFirebaseUser = async (req, res) => {
+  if (!firestore) {
+    res.status(503).json({ error: "Firestore not configured" });
+    return null;
+  }
+  const idToken = getBearerToken(req);
+  if (!idToken) {
+    res.status(401).json({ error: "Missing Authorization Bearer token" });
+    return null;
+  }
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return decoded;
+  } catch (_e) {
+    res.status(401).json({ error: "Invalid Firebase token" });
+    return null;
+  }
+};
 
 if (!RAZORPAY_KEY_ID || !razorpaySecret) {
   console.warn(
@@ -579,6 +634,121 @@ app.post("/api/razorpay/verify-payment", (req, res) => {
   } catch (err) {
     console.error("verify-payment error:", err);
     return res.status(500).json({ error: "Verification failed" });
+  }
+});
+
+app.get("/api/payments/status", async (req, res) => {
+  const user = await requireFirebaseUser(req, res);
+  if (!user) return;
+
+  try {
+    const category =
+      typeof req.query.category === "string" ? req.query.category : undefined;
+    const uid = user.uid;
+    const snap = await firestore.collection("users").doc(uid).get();
+    const data = snap.exists ? snap.data() : null;
+
+    if (!data) {
+      return res.json({ paid: false });
+    }
+
+    if (!category) {
+      return res.json({ paid: data.paid === true });
+    }
+
+    const key = String(category || "").toLowerCase();
+    const paidCategories = data.paidCategories || {};
+    const entry = paidCategories[key];
+    if (entry === true) {
+      return res.json({ paid: true });
+    }
+    if (entry && typeof entry === "object") {
+      if (entry.flag === true || entry.paid === true) {
+        return res.json({ paid: true });
+      }
+    }
+
+    const paidCourses = data.paidCourses || {};
+    if (paidCourses[key] && paidCourses[key].paid === true) {
+      return res.json({ paid: true });
+    }
+    return res.json({ paid: false });
+  } catch (err) {
+    console.error("payment status error:", err);
+    return res.status(500).json({ error: "Failed to read payment status" });
+  }
+});
+
+app.post("/api/payments/mark-paid", async (req, res) => {
+  const user = await requireFirebaseUser(req, res);
+  if (!user) return;
+
+  try {
+    const {
+      category,
+      amount,
+      currency,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body || {};
+
+    if (!category || typeof category !== "string") {
+      return res.status(400).json({ error: "category is required" });
+    }
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: "Missing payment fields" });
+    }
+
+    if (typeof amount !== "number" || !(amount > 0)) {
+      return res.status(400).json({ error: "amount (number) is required" });
+    }
+
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const expected = crypto
+      .createHmac("sha256", razorpaySecret)
+      .update(body)
+      .digest("hex");
+
+    const verified = expected === razorpay_signature;
+    if (!verified) {
+      return res.status(400).json({ error: "Payment verification failed" });
+    }
+
+    const uid = user.uid;
+    const key = String(category || "").toLowerCase();
+    const ref = firestore.collection("users").doc(uid);
+
+    await ref.set(
+      {
+        paid: true,
+        paidAt: admin.firestore.FieldValue.serverTimestamp(),
+        paidCategories: {
+          [key]: {
+            flag: true,
+            amount,
+            currency: typeof currency === "string" ? currency : "INR",
+            paidAt: admin.firestore.FieldValue.serverTimestamp(),
+            razorpay_order_id,
+            razorpay_payment_id,
+          },
+        },
+        lastPayment: {
+          category: key,
+          amount,
+          currency: typeof currency === "string" ? currency : "INR",
+          razorpay_order_id,
+          razorpay_payment_id,
+        },
+      },
+      { merge: true },
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("mark-paid error:", err);
+    return res.status(500).json({ error: "Failed to store payment status" });
   }
 });
 
