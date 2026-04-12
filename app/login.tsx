@@ -1,5 +1,6 @@
 import { useAuth } from "@/src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
+import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import {
@@ -9,14 +10,26 @@ import {
     Pressable,
     StyleSheet,
     Text,
+    TextInput,
     useWindowDimensions,
     View,
 } from "react-native";
 
 export default function LoginScreen() {
-  const { login, isLoading } = useAuth();
+  const {
+    loginWithGoogle,
+    sendOtp,
+    verifyOtp,
+    setRecaptchaVerifier,
+    verificationId,
+    isLoading,
+  } = useAuth();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+
+  const [phone, setPhone] = React.useState("+");
+  const [otp, setOtp] = React.useState("");
+  const recaptchaRef = React.useRef<FirebaseRecaptchaVerifierModal>(null);
 
   // Animated entrance
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -81,7 +94,7 @@ export default function LoginScreen() {
             styles.googleButton,
             pressed && styles.buttonPressed,
           ]}
-          onPress={login}
+          onPress={loginWithGoogle}
           disabled={isLoading}
         >
           {({ pressed }) => (
@@ -104,6 +117,90 @@ export default function LoginScreen() {
             </LinearGradient>
           )}
         </Pressable>
+
+        <FirebaseRecaptchaVerifierModal
+          ref={recaptchaRef}
+          firebaseConfig={{
+            apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId:
+              process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+          }}
+        />
+
+        <View style={styles.phoneBox}>
+          <Text style={styles.phoneTitle}>Or login with mobile</Text>
+          <TextInput
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="+91XXXXXXXXXX"
+            placeholderTextColor="rgba(255,255,255,0.35)"
+            keyboardType="phone-pad"
+            style={styles.phoneInput}
+          />
+
+          {verificationId ? (
+            <>
+              <TextInput
+                value={otp}
+                onChangeText={setOtp}
+                placeholder="Enter OTP"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                keyboardType="number-pad"
+                style={styles.phoneInput}
+              />
+              <Pressable
+                style={({ pressed }) => [
+                  styles.otpButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={() => verifyOtp(otp)}
+                disabled={isLoading || otp.trim().length < 4}
+              >
+                <LinearGradient
+                  colors={["#10b981", "#059669"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.buttonGradient}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Verify OTP</Text>
+                  )}
+                </LinearGradient>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [
+                styles.otpButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={async () => {
+                setRecaptchaVerifier(recaptchaRef.current);
+                await sendOtp(phone, recaptchaRef.current);
+              }}
+              disabled={isLoading || phone.trim().length < 8}
+            >
+              <LinearGradient
+                colors={["#10b981", "#059669"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.buttonGradient}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Send OTP</Text>
+                )}
+              </LinearGradient>
+            </Pressable>
+          )}
+        </View>
 
         <Text style={styles.legalText}>
           By continuing, you agree to our Terms of Service and Privacy Policy.
@@ -211,6 +308,32 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     marginBottom: 20,
+  },
+  phoneBox: {
+    marginTop: 8,
+    marginBottom: 16,
+    paddingTop: 12,
+  },
+  phoneTitle: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  phoneInput: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    color: "#fff",
+    marginBottom: 12,
+  },
+  otpButton: {
+    borderRadius: 14,
+    overflow: "hidden",
   },
   buttonPressed: {
     opacity: 0.9,

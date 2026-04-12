@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "242974871047",
+    "project_id": "onlineclasses-74805",
+    "storage_bucket": "onlineclasses-74805.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:242974871047:android:73d18562f4938137b024a2",
+        "android_client_info": {
+          "package_name": "com.videomaster.onlineclasses"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "242974871047-jqk6frh4t7hmmvefcqfgbnvqtp4q4ffd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLap_f0hscdqf273zS2kcNXbhEKkusHQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "242974871047-dpr2ii0v39a6acfggbd7bq3lno7g3k95.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
