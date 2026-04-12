@@ -1,16 +1,21 @@
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
-import { createOrder, markPaid, verifyPayment } from "@/src/api/razorpay";
+import {
+  createOrder,
+  getPaymentStatus,
+  markPaid,
+  verifyPayment,
+} from "@/src/api/razorpay";
 import { auth } from "@/src/firebase";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 const WebView =
@@ -76,6 +81,23 @@ export default function PayScreen() {
           setError("Missing course category");
           setLoading(false);
           return;
+        }
+
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          try {
+            const idToken = await currentUser.getIdToken();
+            const status = await getPaymentStatus(categoryStr, idToken);
+            if (status?.paid === true) {
+              router.replace({
+                pathname: "/course/[category]",
+                params: { category: categoryStr },
+              } as any);
+              return;
+            }
+          } catch (_e) {
+            // ignore status failures and continue to payment
+          }
         }
 
         const receipt = `course_${categoryStr}_${Date.now()}`;
