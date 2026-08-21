@@ -4,20 +4,20 @@ import * as Google from "expo-auth-session/providers/google";
 import type { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import * as WebBrowser from "expo-web-browser";
 import {
-    GoogleAuthProvider,
-    onAuthStateChanged,
-    PhoneAuthProvider,
-    signInWithCredential,
-    signInWithPhoneNumber,
-    signOut,
-    type User as FirebaseUser,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  PhoneAuthProvider,
+  signInWithCredential,
+  signInWithPhoneNumber,
+  signOut,
+  type User as FirebaseUser,
 } from "firebase/auth";
 import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
 
 WebBrowser.maybeCompleteAuthSession();
