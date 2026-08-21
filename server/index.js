@@ -12,6 +12,45 @@ const admin = require("firebase-admin");
 const Razorpay = require("razorpay");
 const ytdl = require("ytdl-core");
 
+// Simple logger for server
+const logger = {
+  formatTimestamp: () => {
+    const now = new Date();
+    const date = now.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
+    const time = now.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+    return `${date} ${time}`;
+  },
+  info: (message, context = {}) => {
+    const timestamp = logger.formatTimestamp();
+    console.log(`[${timestamp}] [INFO] ${message}`, context);
+  },
+  error: (message, error, context = {}) => {
+    const timestamp = logger.formatTimestamp();
+    console.error(`[${timestamp}] [ERROR] ${message}`, {
+      ...context,
+      error: error?.message,
+      stack: error?.stack,
+    });
+  },
+  warn: (message, context = {}) => {
+    const timestamp = logger.formatTimestamp();
+    console.warn(`[${timestamp}] [WARN] ${message}`, context);
+  },
+  api: (message, context = {}) => {
+    const timestamp = logger.formatTimestamp();
+    console.log(`[${timestamp}] [API] ${message}`, context);
+  },
+};
+
 const app = express();
 
 app.set("trust proxy", 1);
@@ -107,13 +146,15 @@ try {
       });
     }
     firestore = admin.firestore();
+    logger.info("Firebase Admin initialized successfully");
   } else {
-    console.warn(
-      "Missing FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_PATH in server env. Payment status endpoints will be disabled.",
-    );
+    logger.warn("Missing Firebase service account configuration", {
+      hasJson: !!FIREBASE_SERVICE_ACCOUNT_JSON,
+      hasPath: !!FIREBASE_SERVICE_ACCOUNT_PATH,
+    });
   }
 } catch (err) {
-  console.error("Failed to init firebase-admin:", err);
+  logger.error("Failed to initialize Firebase Admin", err);
 }
 
 const getBearerToken = (req) => {
@@ -125,33 +166,36 @@ const getBearerToken = (req) => {
 
 const requireFirebaseUser = async (req, res) => {
   if (!firestore) {
+    logger.warn("Firestore not configured for request");
     res.status(503).json({ error: "Firestore not configured" });
     return null;
   }
   const idToken = getBearerToken(req);
   if (!idToken) {
+    logger.warn("Missing Authorization Bearer token");
     res.status(401).json({ error: "Missing Authorization Bearer token" });
     return null;
   }
   try {
     const decoded = await admin.auth().verifyIdToken(idToken);
+    logger.info("Firebase token verified", { uid: decoded.uid });
     return decoded;
   } catch (_e) {
+    logger.warn("Invalid Firebase token", { error: _e?.message });
     res.status(401).json({ error: "Invalid Firebase token" });
     return null;
   }
 };
 
 if (!RAZORPAY_KEY_ID || !razorpaySecret) {
-  console.warn(
-    "Missing Razorpay keys. Expected RAZORPAY_KEY_ID and (RAZORPAY_KEY_SECRET or RAZORPAY_SECRET) in server env.",
-  );
+  logger.warn("Missing Razorpay keys", {
+    hasKeyId: !!RAZORPAY_KEY_ID,
+    hasSecret: !!razorpaySecret,
+  });
 }
 
 if (!YOUTUBE_API_KEY) {
-  console.warn(
-    "Missing YOUTUBE_API_KEY in server env. YouTube proxy endpoints will fail without it.",
-  );
+  logger.warn("Missing YOUTUBE_API_KEY");
 }
 
 const razorpay = new Razorpay({
@@ -203,16 +247,26 @@ const pruneCache = () => {
 setInterval(pruneCache, 5 * 60 * 1000).unref();
 
 const ytGet = async (path, params) => {
+  logger.api(`YouTube API request: ${path}`, { params });
   if (!YOUTUBE_API_KEY) {
+    logger.error("Missing YOUTUBE_API_KEY", null, { path });
     const err = new Error("Missing YOUTUBE_API_KEY");
     err.statusCode = 500;
     throw err;
   }
-  const res = await axios.get(`${YT_BASE_URL}${path}`, {
-    params: { ...params, key: YOUTUBE_API_KEY },
-    timeout: 15000,
-  });
-  return res.data;
+  try {
+    const res = await axios.get(`${YT_BASE_URL}${path}`, {
+      params: { ...params, key: YOUTUBE_API_KEY },
+      timeout: 15000,
+    });
+    logger.api(`YouTube API success: ${path}`, {
+      itemCount: res.data?.items?.length,
+    });
+    return res.data;
+  } catch (error) {
+    logger.error(`YouTube API failed: ${path}`, error, { params });
+    throw error;
+  }
 };
 
 const mapYouTubeResponseToVideos = (items) => {
@@ -259,6 +313,9 @@ const parseDuration = (duration) => {
 };
 
 app.get("/api/youtube/trending", youtubeLimiter, async (req, res) => {
+  logger.info("YouTube trending requested", {
+    pageToken: req.query?.pageToken,
+  });
   try {
     const { pageToken } = req.query || {};
     const params = {
@@ -271,7 +328,10 @@ app.get("/api/youtube/trending", youtubeLimiter, async (req, res) => {
 
     const cacheKey = getCacheKey("trending", params);
     const cached = cacheGet(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      logger.info("YouTube trending cache hit");
+      return res.json(cached);
+    }
 
     const data = await ytGet("/videos", params);
     const usableItems = (data.items || []).filter((item) => {
@@ -286,9 +346,12 @@ app.get("/api/youtube/trending", youtubeLimiter, async (req, res) => {
       nextPageToken: data.nextPageToken,
     };
     cacheSet(cacheKey, payload);
+    logger.info("YouTube trending fetched successfully", {
+      count: payload.videos.length,
+    });
     return res.json(payload);
   } catch (err) {
-    console.error("youtube trending error:", err?.response?.data || err);
+    logger.error("YouTube trending error", err);
     return res
       .status(err?.statusCode || 500)
       .json({ error: "Failed to fetch trending videos" });
@@ -296,14 +359,20 @@ app.get("/api/youtube/trending", youtubeLimiter, async (req, res) => {
 });
 
 app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
+  logger.info("YouTube search requested", {
+    query: req.query?.q,
+    pageToken: req.query?.pageToken,
+  });
   try {
     const { q, pageToken } = req.query || {};
     const query = typeof q === "string" ? q.trim() : "";
 
     if (!query) {
+      logger.warn("YouTube search: missing query");
       return res.status(400).json({ error: "q is required" });
     }
     if (query.length > 200) {
+      logger.warn("YouTube search: query too long", { length: query.length });
       return res.status(400).json({ error: "q is too long" });
     }
 
@@ -317,13 +386,17 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
 
     const cacheKey = getCacheKey("search", searchParams);
     const cached = cacheGet(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      logger.info("YouTube search cache hit", { query });
+      return res.json(cached);
+    }
 
     const searchData = await ytGet("/search", searchParams);
     const items = searchData.items || [];
     if (items.length === 0) {
       const payload = { videos: [], nextPageToken: undefined };
       cacheSet(cacheKey, payload);
+      logger.info("YouTube search: no results", { query });
       return res.json(payload);
     }
 
@@ -401,9 +474,13 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
       nextPageToken: searchData.nextPageToken,
     };
     cacheSet(cacheKey, payload);
+    logger.info("YouTube search completed", {
+      query,
+      count: mappedItems.length,
+    });
     return res.json(payload);
   } catch (err) {
-    console.error("youtube search error:", err?.response?.data || err);
+    logger.error("YouTube search error", err, { query: req.query?.q });
     return res
       .status(err?.statusCode || 500)
       .json({ error: "Failed to search videos" });
@@ -411,27 +488,34 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
 });
 
 app.get("/api/youtube/video", youtubeLimiter, async (req, res) => {
+  logger.info("YouTube video requested", { id: req.query?.id });
   try {
     const { id } = req.query || {};
     if (!id || typeof id !== "string") {
+      logger.warn("YouTube video: missing id");
       return res.status(400).json({ error: "id is required" });
     }
     if (!/^[a-zA-Z0-9_-]{11}$/.test(id)) {
+      logger.warn("YouTube video: invalid id", { id });
       return res.status(400).json({ error: "Invalid id" });
     }
 
     const params = { part: "snippet,statistics,contentDetails", id };
     const cacheKey = getCacheKey("video", params);
     const cached = cacheGet(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      logger.info("YouTube video cache hit", { id });
+      return res.json(cached);
+    }
 
     const data = await ytGet("/videos", params);
     const item = (data.items || [])[0];
     const payload = item ? mapYouTubeResponseToVideos([item])[0] : null;
     cacheSet(cacheKey, payload);
+    logger.info("YouTube video fetched successfully", { id });
     return res.json(payload);
   } catch (err) {
-    console.error("youtube video error:", err?.response?.data || err);
+    logger.error("YouTube video error", err, { id: req.query?.id });
     return res
       .status(err?.statusCode || 500)
       .json({ error: "Failed to fetch video" });
@@ -439,19 +523,25 @@ app.get("/api/youtube/video", youtubeLimiter, async (req, res) => {
 });
 
 app.get("/api/youtube/playlist", youtubeLimiter, async (req, res) => {
+  logger.info("YouTube playlist requested", { id: req.query?.id });
   try {
     const { id } = req.query || {};
     if (!id || typeof id !== "string") {
+      logger.warn("YouTube playlist: missing id");
       return res.status(400).json({ error: "id is required" });
     }
     if (id.length > 120) {
+      logger.warn("YouTube playlist: invalid id", { id, length: id.length });
       return res.status(400).json({ error: "Invalid id" });
     }
 
     const params = { part: "snippet,contentDetails", id };
     const cacheKey = getCacheKey("playlist", params);
     const cached = cacheGet(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      logger.info("YouTube playlist cache hit", { id });
+      return res.json(cached);
+    }
 
     const data = await ytGet("/playlists", params);
     const item = (data.items || [])[0];
@@ -480,9 +570,10 @@ app.get("/api/youtube/playlist", youtubeLimiter, async (req, res) => {
           }
         : null;
     cacheSet(cacheKey, payload);
+    logger.info("YouTube playlist fetched successfully", { id });
     return res.json(payload);
   } catch (err) {
-    console.error("youtube playlist error:", err?.response?.data || err);
+    logger.error("YouTube playlist error", err, { id: req.query?.id });
     return res
       .status(err?.statusCode || 500)
       .json({ error: "Failed to fetch playlist" });
@@ -498,6 +589,7 @@ const readVisitorCount = () => {
     const count = Number(data?.count);
     return Number.isFinite(count) && count >= 0 ? count : 0;
   } catch (_e) {
+    logger.warn("Failed to read visitor count", { error: _e?.message });
     return 0;
   }
 };
@@ -508,6 +600,7 @@ const writeVisitorCount = (count) => {
 
 app.get("/api/visitors", (_req, res) => {
   const count = readVisitorCount();
+  logger.info("Visitor count requested", { count });
   res.json({ count });
 });
 
@@ -515,8 +608,9 @@ const incrementVisitorsHandler = (_req, res) => {
   const count = readVisitorCount() + 1;
   try {
     writeVisitorCount(count);
+    logger.info("Visitor count incremented", { count });
   } catch (e) {
-    console.error("visitor count write error:", e);
+    logger.error("Visitor count write error", e);
     return res.status(500).json({ error: "Failed to update visitor count" });
   }
   return res.json({ count });
@@ -526,14 +620,17 @@ app.post("/api/visitors/increment", visitorsLimiter, incrementVisitorsHandler);
 app.get("/api/visitors/increment", visitorsLimiter, incrementVisitorsHandler);
 
 app.get("/api/youtube/download", downloadLimiter, async (req, res) => {
+  logger.info("YouTube download requested", { videoId: req.query?.videoId });
   try {
     const { videoId } = req.query || {};
 
     if (!videoId || typeof videoId !== "string") {
+      logger.warn("YouTube download: missing videoId");
       return res.status(400).json({ error: "videoId is required" });
     }
 
     if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      logger.warn("YouTube download: invalid videoId", { videoId });
       return res.status(400).json({ error: "Invalid videoId" });
     }
 
@@ -558,7 +655,7 @@ app.get("/api/youtube/download", downloadLimiter, async (req, res) => {
     });
 
     stream.on("error", (err) => {
-      console.error("ytdl stream error:", err);
+      logger.error("ytdl stream error", err, { videoId });
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to download video" });
       } else {
@@ -566,18 +663,26 @@ app.get("/api/youtube/download", downloadLimiter, async (req, res) => {
       }
     });
 
+    logger.info("YouTube download started", { videoId, filename });
     stream.pipe(res);
   } catch (err) {
-    console.error("youtube download error:", err);
+    logger.error("YouTube download error", err, {
+      videoId: req.query?.videoId,
+    });
     return res.status(500).json({ error: "Failed to download video" });
   }
 });
 
 app.post("/api/razorpay/create-order", async (req, res) => {
+  logger.info("Create order requested", {
+    amount: req.body?.amount,
+    currency: req.body?.currency,
+  });
   try {
     const { amount, currency = "INR", receipt, notes } = req.body || {};
 
     if (!amount || typeof amount !== "number") {
+      logger.warn("Create order: invalid amount", { amount });
       return res.status(400).json({ error: "amount (number) is required" });
     }
 
@@ -588,6 +693,10 @@ app.post("/api/razorpay/create-order", async (req, res) => {
       notes,
     });
 
+    logger.info("Order created successfully", {
+      orderId: order.id,
+      amount: order.amount,
+    });
     return res.json({
       orderId: order.id,
       amount: order.amount,
@@ -597,11 +706,7 @@ app.post("/api/razorpay/create-order", async (req, res) => {
   } catch (err) {
     const statusCode = err?.statusCode;
     const errorBody = err?.error;
-    console.error("create-order error:", {
-      message: err?.message,
-      statusCode,
-      error: errorBody,
-    });
+    logger.error("Create order failed", err, { amount: req.body?.amount });
     return res.status(500).json({
       error: "Failed to create order",
       details: {
@@ -614,11 +719,17 @@ app.post("/api/razorpay/create-order", async (req, res) => {
 });
 
 app.post("/api/razorpay/verify-payment", (req, res) => {
+  logger.info("Verify payment requested", {
+    orderId: req.body?.razorpay_order_id,
+  });
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body || {};
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      logger.warn("Verify payment: missing fields", {
+        orderId: razorpay_order_id,
+      });
       return res.status(400).json({ error: "Missing payment fields" });
     }
 
@@ -629,15 +740,24 @@ app.post("/api/razorpay/verify-payment", (req, res) => {
       .digest("hex");
 
     const verified = expected === razorpay_signature;
+    logger.info("Payment verification completed", {
+      orderId: razorpay_order_id,
+      verified,
+    });
 
     return res.json({ verified });
   } catch (err) {
-    console.error("verify-payment error:", err);
+    logger.error("Verify payment failed", err, {
+      orderId: req.body?.razorpay_order_id,
+    });
     return res.status(500).json({ error: "Verification failed" });
   }
 });
 
 app.get("/api/payments/status", async (req, res) => {
+  logger.info("Payment status check requested", {
+    category: req.query.category,
+  });
   const user = await requireFirebaseUser(req, res);
   if (!user) return;
 
@@ -649,37 +769,56 @@ app.get("/api/payments/status", async (req, res) => {
     const data = snap.exists ? snap.data() : null;
 
     if (!data) {
+      logger.info("Payment status: no user data", { uid, category });
       return res.json({ paid: false });
     }
 
     if (!category) {
-      return res.json({ paid: data.paid === true });
+      const isPaid = data.paid === true;
+      logger.info("Payment status: general check", { uid, paid: isPaid });
+      return res.json({ paid: isPaid });
     }
 
     const key = String(category || "").toLowerCase();
     const paidCategories = data.paidCategories || {};
     const entry = paidCategories[key];
     if (entry === true) {
+      logger.info("Payment status: paid (boolean true)", {
+        uid,
+        category: key,
+      });
       return res.json({ paid: true });
     }
     if (entry && typeof entry === "object") {
       if (entry.flag === true || entry.paid === true) {
+        logger.info("Payment status: paid (object flag)", {
+          uid,
+          category: key,
+        });
         return res.json({ paid: true });
       }
     }
 
     const paidCourses = data.paidCourses || {};
     if (paidCourses[key] && paidCourses[key].paid === true) {
+      logger.info("Payment status: paid (paidCourses)", { uid, category: key });
       return res.json({ paid: true });
     }
+    logger.info("Payment status: not paid", { uid, category: key });
     return res.json({ paid: false });
   } catch (err) {
-    console.error("payment status error:", err);
+    logger.error("Payment status check failed", err, {
+      category: req.query.category,
+    });
     return res.status(500).json({ error: "Failed to read payment status" });
   }
 });
 
 app.post("/api/payments/mark-paid", async (req, res) => {
+  logger.info("Mark payment as paid requested", {
+    category: req.body?.category,
+    amount: req.body?.amount,
+  });
   const user = await requireFirebaseUser(req, res);
   if (!user) return;
 
@@ -694,14 +833,24 @@ app.post("/api/payments/mark-paid", async (req, res) => {
     } = req.body || {};
 
     if (!category || typeof category !== "string") {
+      logger.warn("Mark paid: missing category", { uid: user.uid });
       return res.status(400).json({ error: "category is required" });
     }
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      logger.warn("Mark paid: missing payment fields", {
+        uid: user.uid,
+        category,
+      });
       return res.status(400).json({ error: "Missing payment fields" });
     }
 
     if (typeof amount !== "number" || !(amount > 0)) {
+      logger.warn("Mark paid: invalid amount", {
+        uid: user.uid,
+        category,
+        amount,
+      });
       return res.status(400).json({ error: "amount (number) is required" });
     }
 
@@ -713,6 +862,11 @@ app.post("/api/payments/mark-paid", async (req, res) => {
 
     const verified = expected === razorpay_signature;
     if (!verified) {
+      logger.warn("Mark paid: payment verification failed", {
+        uid: user.uid,
+        category,
+        orderId: razorpay_order_id,
+      });
       return res.status(400).json({ error: "Payment verification failed" });
     }
 
@@ -745,10 +899,83 @@ app.post("/api/payments/mark-paid", async (req, res) => {
       { merge: true },
     );
 
+    logger.info("Payment marked as paid successfully", {
+      uid,
+      category: key,
+      amount,
+    });
     return res.json({ ok: true });
   } catch (err) {
-    console.error("mark-paid error:", err);
+    logger.error("Mark paid error", err, { category: req.body?.category });
     return res.status(500).json({ error: "Failed to store payment status" });
+  }
+});
+
+// Visit history endpoints
+app.post("/api/visits/log", async (req, res) => {
+  logger.info("Visit log requested", { screen: req.body?.screen });
+  const user = await requireFirebaseUser(req, res);
+  if (!user) return;
+
+  try {
+    const { screen, action, details } = req.body || {};
+
+    if (!screen || typeof screen !== "string") {
+      logger.warn("Visit log: missing screen", { uid: user.uid });
+      return res.status(400).json({ error: "screen is required" });
+    }
+
+    const visitRef = firestore.collection("visitHistory").doc();
+    await visitRef.set({
+      userId: user.uid,
+      userEmail: user.email,
+      screen,
+      action: action || "view",
+      details: details || {},
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info("Visit logged successfully", { uid: user.uid, screen, action });
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error("Visit log error", err, { screen: req.body?.screen });
+    return res.status(500).json({ error: "Failed to log visit" });
+  }
+});
+
+app.get("/api/visits/history", async (req, res) => {
+  logger.info("Visit history requested");
+  const user = await requireFirebaseUser(req, res);
+  if (!user) return;
+
+  try {
+    const { screen, limit } = req.query || {};
+    const limitNum = limit ? Math.min(parseInt(limit), 100) : 50;
+
+    let query = firestore
+      .collection("visitHistory")
+      .where("userId", "==", user.uid)
+      .orderBy("timestamp", "desc")
+      .limit(limitNum);
+
+    if (screen && typeof screen === "string") {
+      query = query.where("screen", "==", screen);
+    }
+
+    const snapshot = await query.get();
+    const visits = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    logger.info("Visit history retrieved", {
+      uid: user.uid,
+      count: visits.length,
+    });
+    return res.json({ visits });
+  } catch (err) {
+    logger.error("Visit history error", err);
+    return res.status(500).json({ error: "Failed to retrieve visit history" });
   }
 });
 

@@ -1,3 +1,4 @@
+import { logger } from "@/src/utils/logger";
 import axios from "axios";
 
 export interface Video {
@@ -23,21 +24,36 @@ const apiGet = async <T>(
   path: string,
   params?: Record<string, any>,
 ): Promise<T> => {
+  logger.api(`API GET request: ${path}`, { params });
   if (!API_BASE_URL) {
+    logger.error("Missing EXPO_PUBLIC_API_BASE_URL", null, { path });
     throw new Error("Missing EXPO_PUBLIC_API_BASE_URL");
   }
   const url = `${API_BASE_URL}${path}`;
-  const res = await axios.get(url, { params, timeout: 15000 });
-  return res.data as T;
+  try {
+    const res = await axios.get(url, { params, timeout: 15000 });
+    logger.api(`API GET success: ${path}`, { status: res.status });
+    return res.data as T;
+  } catch (error) {
+    logger.error(`API GET failed: ${path}`, error, { params });
+    throw error;
+  }
 };
 
 export const fetchTrendingVideos = async (
   pageToken?: string,
 ): Promise<FetchResponse> => {
+  logger.api("Fetching trending videos", { pageToken });
   try {
-    return await apiGet<FetchResponse>("/api/youtube/trending", { pageToken });
+    const result = await apiGet<FetchResponse>("/api/youtube/trending", {
+      pageToken,
+    });
+    logger.api("Trending videos fetched successfully", {
+      count: result.videos.length,
+    });
+    return result;
   } catch (error) {
-    console.error("Error fetching trending videos:", error);
+    logger.error("Error fetching trending videos", error, { pageToken });
     return { videos: [] };
   }
 };
@@ -46,33 +62,45 @@ export const searchVideos = async (
   query: string,
   pageToken?: string,
 ): Promise<FetchResponse> => {
+  logger.api("Searching videos", { query, pageToken });
   try {
     if (!query) return fetchTrendingVideos(pageToken);
 
-    return await apiGet<FetchResponse>("/api/youtube/search", {
+    const result = await apiGet<FetchResponse>("/api/youtube/search", {
       q: query,
       pageToken,
     });
+    logger.api("Video search completed", {
+      query,
+      count: result.videos.length,
+    });
+    return result;
   } catch (error) {
-    console.error("Error searching videos:", error);
+    logger.error("Error searching videos", error, { query, pageToken });
     return { videos: [] };
   }
 };
 
 export const fetchVideoById = async (id: string): Promise<Video | null> => {
+  logger.api("Fetching video by ID", { id });
   try {
-    return await apiGet<Video | null>("/api/youtube/video", { id });
+    const result = await apiGet<Video | null>("/api/youtube/video", { id });
+    logger.api("Video fetched successfully", { id });
+    return result;
   } catch (error) {
-    console.error("Error fetching video by ID:", error);
+    logger.error("Error fetching video by ID", error, { id });
     return null;
   }
 };
 
 export const fetchPlaylistById = async (id: string): Promise<Video | null> => {
+  logger.api("Fetching playlist by ID", { id });
   try {
-    return await apiGet<Video | null>("/api/youtube/playlist", { id });
+    const result = await apiGet<Video | null>("/api/youtube/playlist", { id });
+    logger.api("Playlist fetched successfully", { id });
+    return result;
   } catch (error) {
-    console.error("Error fetching playlist by ID:", error);
+    logger.error("Error fetching playlist by ID", error, { id });
     return null;
   }
 };

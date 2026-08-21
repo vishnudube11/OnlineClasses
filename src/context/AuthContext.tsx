@@ -1,14 +1,13 @@
 import { auth } from "@/src/firebase";
+import { logger } from "@/src/utils/logger";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
-import type { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import * as WebBrowser from "expo-web-browser";
 import {
     GoogleAuthProvider,
     onAuthStateChanged,
     PhoneAuthProvider,
     signInWithCredential,
-    signInWithPhoneNumber,
     signOut,
     type User as FirebaseUser,
 } from "firebase/auth";
@@ -31,12 +30,8 @@ type User = {
 interface AuthContextType {
   user: User | null;
   loginWithGoogle: () => Promise<void>;
-  sendOtp: (
-    phoneNumber: string,
-    verifier?: FirebaseRecaptchaVerifierModal | null,
-  ) => Promise<void>;
+  sendOtp: (phoneNumber: string) => Promise<void>;
   verifyOtp: (code: string) => Promise<void>;
-  setRecaptchaVerifier: (ref: FirebaseRecaptchaVerifierModal | null) => void;
   verificationId: string | null;
   logout: () => void;
   isLoading: boolean;
@@ -47,7 +42,6 @@ const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: async () => {},
   sendOtp: async () => {},
   verifyOtp: async () => {},
-  setRecaptchaVerifier: () => {},
   verificationId: null,
   logout: () => {},
   isLoading: true,
@@ -60,8 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [recaptchaVerifier, setRecaptchaVerifier] =
-    useState<FirebaseRecaptchaVerifierModal | null>(null);
   const [verificationId, setVerificationId] = useState<string | null>(null);
 
   const googleClientIds = useMemo(
@@ -83,11 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (fbUser: FirebaseUser | null) => {
       if (!fbUser) {
+        logger.auth("User signed out");
         setUser(null);
         setIsLoading(false);
         return;
       }
-      setUser({
+      const userData = {
         name: fbUser.displayName || "Student",
         email: fbUser.email || "",
         avatar:
@@ -95,7 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           "https://ui-avatars.com/api/?name=" +
             encodeURIComponent(fbUser.displayName || "Student") +
             "&background=random",
+      };
+      logger.auth("User signed in", {
+        email: userData.email,
+        name: userData.name,
       });
+      setUser(userData);
       setIsLoading(false);
     });
 
@@ -112,8 +110,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const run = async () => {
       setIsLoading(true);
       try {
+        logger.auth(
+          "Google auth response received, signing in with credential",
+        );
         const credential = GoogleAuthProvider.credential(idToken);
         await signInWithCredential(auth, credential);
+        logger.auth("Google sign in successful");
+      } catch (error) {
+        logger.error("Google sign in failed", error, {
+          action: "google_signin",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -123,38 +129,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [response]);
 
   const loginWithGoogle = async () => {
+    logger.auth("Google login initiated");
     if (!googleClientIds.webClientId && !googleClientIds.androidClientId) {
+      logger.error("Missing Google client IDs", null, {
+        action: "google_login_init",
+      });
       throw new Error("Missing Google client IDs in env");
     }
     if (!request) {
+      logger.error("Google auth request not ready", null, {
+        action: "google_login_init",
+      });
       throw new Error("Google auth request not ready");
     }
     await promptAsync();
   };
 
-  const sendOtp = async (
-    phoneNumber: string,
-    verifier?: FirebaseRecaptchaVerifierModal | null,
-  ) => {
-    const activeVerifier = verifier ?? recaptchaVerifier;
-    if (!activeVerifier) {
-      throw new Error("Recaptcha verifier not ready");
-    }
+  const sendOtp = async (phoneNumber: string) => {
+    logger.auth("OTP send initiated", { phoneNumber });
     setIsLoading(true);
     try {
-      const confirmation = await signInWithPhoneNumber(
-        auth,
+      const provider = new PhoneAuthProvider(auth);
+      const vid = await provider.verifyPhoneNumber(phoneNumber, null as any);
+      setVerificationId(vid);
+      logger.auth("OTP sent successfully", { phoneNumber });
+    } catch (error) {
+      logger.error("OTP send failed", error, {
         phoneNumber,
-        activeVerifier as any,
-      );
-      setVerificationId(confirmation.verificationId);
+        action: "send_otp",
+      });
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const verifyOtp = async (code: string) => {
+    logger.auth("OTP verification initiated", {
+      hasVerificationId: !!verificationId,
+    });
     if (!verificationId) {
+      logger.error("Missing verificationId", null, { action: "verify_otp" });
       throw new Error("Missing verificationId");
     }
     setIsLoading(true);
@@ -162,12 +177,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const credential = PhoneAuthProvider.credential(verificationId, code);
       await signInWithCredential(auth, credential);
       setVerificationId(null);
+      logger.auth("OTP verification successful");
+    } catch (error) {
+      logger.error("OTP verification failed", error, { action: "verify_otp" });
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = () => {
+    logger.auth("Logout initiated");
     void signOut(auth);
   };
 
@@ -178,7 +198,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loginWithGoogle,
         sendOtp,
         verifyOtp,
-        setRecaptchaVerifier,
         verificationId,
         logout,
         isLoading,

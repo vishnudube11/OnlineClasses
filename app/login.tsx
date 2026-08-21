@@ -1,6 +1,5 @@
 import { useAuth } from "@/src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import {
@@ -17,10 +16,10 @@ import {
 
 export default function LoginScreen() {
   const {
+    user,
     loginWithGoogle,
     sendOtp,
     verifyOtp,
-    setRecaptchaVerifier,
     verificationId,
     isLoading,
   } = useAuth();
@@ -29,7 +28,6 @@ export default function LoginScreen() {
 
   const [phone, setPhone] = React.useState("+");
   const [otp, setOtp] = React.useState("");
-  const recaptchaRef = React.useRef<FirebaseRecaptchaVerifierModal>(null);
 
   // Animated entrance
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -118,19 +116,6 @@ export default function LoginScreen() {
           )}
         </Pressable>
 
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaRef}
-          firebaseConfig={{
-            apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-            authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId:
-              process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-          }}
-        />
-
         <View style={styles.phoneBox}>
           <Text style={styles.phoneTitle}>Or login with mobile</Text>
           <TextInput
@@ -181,8 +166,7 @@ export default function LoginScreen() {
                 pressed && styles.buttonPressed,
               ]}
               onPress={async () => {
-                setRecaptchaVerifier(recaptchaRef.current);
-                await sendOtp(phone, recaptchaRef.current);
+                await sendOtp(phone);
               }}
               disabled={isLoading || phone.trim().length < 8}
             >
