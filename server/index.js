@@ -213,7 +213,9 @@ const YT_CACHE_TTL_MS =
   Number(process.env.YOUTUBE_CACHE_TTL_MS) > 0
     ? Number(process.env.YOUTUBE_CACHE_TTL_MS)
     : 15 * 60 * 1000;
-const ytCache = new Map();
+
+// In-memory cache as secondary layer for performance
+const ytMemoryCache = new Map();
 
 const getCacheKey = (kind, params) => {
   const sorted = Object.keys(params || {})
@@ -223,28 +225,142 @@ const getCacheKey = (kind, params) => {
   return `${kind}?${sorted}`;
 };
 
+// Firestore cache functions
+const firestoreCacheGet = async (key) => {
+  if (!firestore) return null;
+
+  try {
+    // Check memory cache first
+    const memoryHit = ytMemoryCache.get(key);
+    if (memoryHit && Date.now() < memoryHit.expiresAt) {
+      logger.api("Memory cache hit", { key });
+      return memoryHit.value;
+    }
+    if (memoryHit && Date.now() >= memoryHit.expiresAt) {
+      ytMemoryCache.delete(key);
+    }
+
+    // Check Firestore cache
+    const doc = await firestore.collection("youtubeCache").doc(key).get();
+    if (!doc.exists) {
+      logger.api("Firestore cache miss", { key });
+      return null;
+    }
+
+    const data = doc.data();
+    const expiresAt = data.expiresAt?.toMillis() || 0;
+
+    // Check if cache is expired
+    if (Date.now() > expiresAt) {
+      logger.api("Firestore cache expired", { key });
+      await firestore.collection("youtubeCache").doc(key).delete();
+      return null;
+    }
+
+    logger.api("Firestore cache hit", { key });
+    const cachedData = data.data;
+
+    // Update memory cache
+    ytMemoryCache.set(key, { value: cachedData, expiresAt });
+    return cachedData;
+  } catch (error) {
+    logger.error("Firestore cache get error", error, { key });
+    return null;
+  }
+};
+
+const firestoreCacheSet = async (key, value, kind, params) => {
+  if (!firestore) return;
+
+  try {
+    const expiresAt = new Date(Date.now() + YT_CACHE_TTL_MS);
+
+    // Remove undefined values from params
+    const cleanParams = {};
+    if (params) {
+      Object.keys(params).forEach((k) => {
+        if (params[k] !== undefined) {
+          cleanParams[k] = params[k];
+        }
+      });
+    }
+
+    await firestore.collection("youtubeCache").doc(key).set({
+      data: value,
+      expiresAt,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      kind,
+      params: cleanParams,
+    });
+
+    // Update memory cache
+    ytMemoryCache.set(key, { value, expiresAt: expiresAt.getTime() });
+    logger.api("Firestore cache set", { key, kind });
+  } catch (error) {
+    logger.error("Firestore cache set error", error, { key });
+    // Don't throw - memory cache is sufficient
+  }
+};
+
+// Legacy in-memory cache functions (kept as fallback)
 const cacheGet = (key) => {
-  const hit = ytCache.get(key);
+  const hit = ytMemoryCache.get(key);
   if (!hit) return null;
   if (Date.now() > hit.expiresAt) {
-    ytCache.delete(key);
+    ytMemoryCache.delete(key);
     return null;
   }
   return hit.value;
 };
 
 const cacheSet = (key, value) => {
-  ytCache.set(key, { value, expiresAt: Date.now() + YT_CACHE_TTL_MS });
+  ytMemoryCache.set(key, { value, expiresAt: Date.now() + YT_CACHE_TTL_MS });
 };
 
 const pruneCache = () => {
   const now = Date.now();
-  for (const [k, v] of ytCache.entries()) {
-    if (!v || now > v.expiresAt) ytCache.delete(k);
+  for (const [k, v] of ytMemoryCache.entries()) {
+    if (!v || now > v.expiresAt) ytMemoryCache.delete(k);
   }
 };
 
 setInterval(pruneCache, 5 * 60 * 1000).unref();
+
+// Firestore cache cleanup - remove expired entries
+const cleanupFirestoreCache = async () => {
+  if (!firestore) return;
+
+  try {
+    const now = new Date();
+    const snapshot = await firestore
+      .collection("youtubeCache")
+      .where("expiresAt", "<", now)
+      .limit(500)
+      .get();
+
+    if (snapshot.empty) {
+      return;
+    }
+
+    const batch = firestore.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+    logger.info("Firestore cache cleanup completed", {
+      deletedCount: snapshot.size,
+    });
+  } catch (error) {
+    logger.error("Firestore cache cleanup error", error);
+  }
+};
+
+// Run Firestore cleanup every hour
+setInterval(cleanupFirestoreCache, 60 * 60 * 1000).unref();
+
+// Run initial cleanup after 30 seconds
+setTimeout(cleanupFirestoreCache, 30 * 1000).unref();
 
 const ytGet = async (path, params) => {
   logger.api(`YouTube API request: ${path}`, { params });
@@ -327,7 +443,7 @@ app.get("/api/youtube/trending", youtubeLimiter, async (req, res) => {
     };
 
     const cacheKey = getCacheKey("trending", params);
-    const cached = cacheGet(cacheKey);
+    const cached = await firestoreCacheGet(cacheKey);
     if (cached) {
       logger.info("YouTube trending cache hit");
       return res.json(cached);
@@ -345,7 +461,7 @@ app.get("/api/youtube/trending", youtubeLimiter, async (req, res) => {
       videos: mapYouTubeResponseToVideos(usableItems.slice(0, 15)),
       nextPageToken: data.nextPageToken,
     };
-    cacheSet(cacheKey, payload);
+    await firestoreCacheSet(cacheKey, payload, "trending", params);
     logger.info("YouTube trending fetched successfully", {
       count: payload.videos.length,
     });
@@ -385,7 +501,7 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
     };
 
     const cacheKey = getCacheKey("search", searchParams);
-    const cached = cacheGet(cacheKey);
+    const cached = await firestoreCacheGet(cacheKey);
     if (cached) {
       logger.info("YouTube search cache hit", { query });
       return res.json(cached);
@@ -395,7 +511,7 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
     const items = searchData.items || [];
     if (items.length === 0) {
       const payload = { videos: [], nextPageToken: undefined };
-      cacheSet(cacheKey, payload);
+      await firestoreCacheSet(cacheKey, payload, "search", searchParams);
       logger.info("YouTube search: no results", { query });
       return res.json(payload);
     }
@@ -473,7 +589,7 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
       videos: mappedItems,
       nextPageToken: searchData.nextPageToken,
     };
-    cacheSet(cacheKey, payload);
+    await firestoreCacheSet(cacheKey, payload, "search", searchParams);
     logger.info("YouTube search completed", {
       query,
       count: mappedItems.length,
@@ -502,7 +618,7 @@ app.get("/api/youtube/video", youtubeLimiter, async (req, res) => {
 
     const params = { part: "snippet,statistics,contentDetails", id };
     const cacheKey = getCacheKey("video", params);
-    const cached = cacheGet(cacheKey);
+    const cached = await firestoreCacheGet(cacheKey);
     if (cached) {
       logger.info("YouTube video cache hit", { id });
       return res.json(cached);
@@ -511,7 +627,7 @@ app.get("/api/youtube/video", youtubeLimiter, async (req, res) => {
     const data = await ytGet("/videos", params);
     const item = (data.items || [])[0];
     const payload = item ? mapYouTubeResponseToVideos([item])[0] : null;
-    cacheSet(cacheKey, payload);
+    await firestoreCacheSet(cacheKey, payload, "video", params);
     logger.info("YouTube video fetched successfully", { id });
     return res.json(payload);
   } catch (err) {
@@ -537,7 +653,7 @@ app.get("/api/youtube/playlist", youtubeLimiter, async (req, res) => {
 
     const params = { part: "snippet,contentDetails", id };
     const cacheKey = getCacheKey("playlist", params);
-    const cached = cacheGet(cacheKey);
+    const cached = await firestoreCacheGet(cacheKey);
     if (cached) {
       logger.info("YouTube playlist cache hit", { id });
       return res.json(cached);
@@ -569,7 +685,7 @@ app.get("/api/youtube/playlist", youtubeLimiter, async (req, res) => {
               : "Playlist",
           }
         : null;
-    cacheSet(cacheKey, payload);
+    await firestoreCacheSet(cacheKey, payload, "playlist", params);
     logger.info("YouTube playlist fetched successfully", { id });
     return res.json(payload);
   } catch (err) {
