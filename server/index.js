@@ -377,10 +377,22 @@ const parseDuration = (duration) => {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 };
 
-const SUPPORTED_LANGUAGES = require(path.join(
-  __dirname,
-  "../src/i18n/supportedLanguages.json",
-));
+const loadSupportedLanguages = () => {
+  const candidates = [
+    path.join(__dirname, "supportedLanguages.json"),
+    path.join(__dirname, "../src/i18n/supportedLanguages.json"),
+  ];
+  for (const filePath of candidates) {
+    if (fs.existsSync(filePath)) {
+      return require(filePath);
+    }
+  }
+  throw new Error(
+    "supportedLanguages.json not found next to the server or in src/i18n",
+  );
+};
+
+const SUPPORTED_LANGUAGES = loadSupportedLanguages();
 
 const CONTENT_LANGUAGE_CONFIG = Object.fromEntries(
   SUPPORTED_LANGUAGES.map((language) => [
