@@ -232,12 +232,9 @@ const firestoreCacheGet = async (key) => {
   try {
     // Check memory cache first
     const memoryHit = ytMemoryCache.get(key);
-    if (memoryHit && Date.now() < memoryHit.expiresAt) {
+    if (memoryHit) {
       logger.api("Memory cache hit", { key });
       return memoryHit.value;
-    }
-    if (memoryHit && Date.now() >= memoryHit.expiresAt) {
-      ytMemoryCache.delete(key);
     }
 
     // Check Firestore cache
@@ -248,20 +245,11 @@ const firestoreCacheGet = async (key) => {
     }
 
     const data = doc.data();
-    const expiresAt = data.expiresAt?.toMillis() || 0;
-
-    // Check if cache is expired
-    if (Date.now() > expiresAt) {
-      logger.api("Firestore cache expired", { key });
-      await firestore.collection("youtubeCache").doc(key).delete();
-      return null;
-    }
-
     logger.api("Firestore cache hit", { key });
     const cachedData = data.data;
 
-    // Update memory cache
-    ytMemoryCache.set(key, { value: cachedData, expiresAt });
+    // Update memory cache (no expiration for Firestore cache)
+    ytMemoryCache.set(key, { value: cachedData, expiresAt: Infinity });
     return cachedData;
   } catch (error) {
     logger.error("Firestore cache get error", error, { key });
@@ -273,8 +261,6 @@ const firestoreCacheSet = async (key, value, kind, params) => {
   if (!firestore) return;
 
   try {
-    const expiresAt = new Date(Date.now() + YT_CACHE_TTL_MS);
-
     // Remove undefined values from params
     const cleanParams = {};
     if (params) {
@@ -287,14 +273,13 @@ const firestoreCacheSet = async (key, value, kind, params) => {
 
     await firestore.collection("youtubeCache").doc(key).set({
       data: value,
-      expiresAt,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       kind,
       params: cleanParams,
     });
 
-    // Update memory cache
-    ytMemoryCache.set(key, { value, expiresAt: expiresAt.getTime() });
+    // Update memory cache (no expiration for Firestore cache)
+    ytMemoryCache.set(key, { value, expiresAt: Infinity });
     logger.api("Firestore cache set", { key, kind });
   } catch (error) {
     logger.error("Firestore cache set error", error, { key });
@@ -325,42 +310,6 @@ const pruneCache = () => {
 };
 
 setInterval(pruneCache, 5 * 60 * 1000).unref();
-
-// Firestore cache cleanup - remove expired entries
-const cleanupFirestoreCache = async () => {
-  if (!firestore) return;
-
-  try {
-    const now = new Date();
-    const snapshot = await firestore
-      .collection("youtubeCache")
-      .where("expiresAt", "<", now)
-      .limit(500)
-      .get();
-
-    if (snapshot.empty) {
-      return;
-    }
-
-    const batch = firestore.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-    logger.info("Firestore cache cleanup completed", {
-      deletedCount: snapshot.size,
-    });
-  } catch (error) {
-    logger.error("Firestore cache cleanup error", error);
-  }
-};
-
-// Run Firestore cleanup every hour
-setInterval(cleanupFirestoreCache, 60 * 60 * 1000).unref();
-
-// Run initial cleanup after 30 seconds
-setTimeout(cleanupFirestoreCache, 30 * 1000).unref();
 
 const ytGet = async (path, params) => {
   logger.api(`YouTube API request: ${path}`, { params });
