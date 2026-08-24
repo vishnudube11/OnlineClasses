@@ -7,6 +7,7 @@ import {
     Video,
 } from "@/src/api/youtube";
 import VideoCard from "@/src/components/VideoCard";
+import { withContentLanguage } from "@/src/i18n/contentLanguage";
 import {
     getLastPositionSec,
     setLastPositionSec,
@@ -19,6 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -47,6 +49,8 @@ export default function VideoScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const { width, height } = useWindowDimensions();
+  const { i18n } = useTranslation();
+  const contentLanguage = i18n.language;
 
   const [playing, setPlaying] = useState(false);
   const [video, setVideo] = useState<Video | null>(null);
@@ -185,8 +189,15 @@ export default function VideoScreen() {
     }
 
     setPlayerReady(false);
-    const suggestionQuery = category ? `${category} course tutorial` : "";
-    const suggestions = await searchVideos(suggestionQuery);
+    const suggestionQuery = withContentLanguage(
+      category ? `${category} course tutorial` : "course tutorial",
+      contentLanguage,
+    );
+    const suggestions = await searchVideos(
+      suggestionQuery,
+      undefined,
+      contentLanguage,
+    );
     setSuggestedVideos(suggestions.videos.filter((v) => v.id !== videoId));
     setNextPageToken(suggestions.nextPageToken);
     setLoading(false);
@@ -200,8 +211,15 @@ export default function VideoScreen() {
   const loadMoreSuggestions = async () => {
     if (loadingMore || !nextPageToken) return;
     setLoadingMore(true);
-    const suggestionQuery = category ? `${category} course tutorial` : "";
-    const suggestions = await searchVideos(suggestionQuery, nextPageToken);
+    const suggestionQuery = withContentLanguage(
+      category ? `${category} course tutorial` : "course tutorial",
+      contentLanguage,
+    );
+    const suggestions = await searchVideos(
+      suggestionQuery,
+      nextPageToken,
+      contentLanguage,
+    );
     setSuggestedVideos((prev) => [
       ...prev,
       ...suggestions.videos.filter((v) => v.id !== id),

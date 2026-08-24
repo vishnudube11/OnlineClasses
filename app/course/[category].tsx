@@ -2,10 +2,12 @@ import { useColorScheme } from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
 import { searchVideos, Video } from "@/src/api/youtube";
 import VideoCard from "@/src/components/VideoCard";
+import { withContentLanguage } from "@/src/i18n/contentLanguage";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Animated,
@@ -56,6 +58,8 @@ export default function CourseSuggestionsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const { width } = useWindowDimensions();
+  const { i18n } = useTranslation();
+  const contentLanguage = i18n.language;
 
   const numCols = width >= 900 ? 4 : width >= 600 ? 3 : 2;
 
@@ -65,20 +69,6 @@ export default function CourseSuggestionsScreen() {
     { key: "genai", label: "GenAI", query: "generative ai" },
     { key: "ml", label: "ML", query: "machine learning" },
     { key: "ds", label: "Data", query: "data science" },
-    { key: "hindi", label: "Hindi", query: "Hindi" },
-    { key: "tamil", label: "Tamil", query: "Tamil" },
-    { key: "telugu", label: "Telugu", query: "Telugu" },
-    { key: "spanish", label: "Spanish", query: "Spanish" },
-    { key: "french", label: "French", query: "French" },
-    { key: "german", label: "German", query: "German" },
-    { key: "japanese", label: "Japanese", query: "Japanese" },
-    { key: "korean", label: "Korean", query: "Korean" },
-    { key: "chinese", label: "Chinese (Mandarin)", query: "Chinese Mandarin" },
-    { key: "italian", label: "Italian", query: "Italian" },
-    { key: "russian", label: "Russian", query: "Russian" },
-    { key: "arabic", label: "Arabic", query: "Arabic" },
-    { key: "portuguese", label: "Portuguese", query: "Portuguese" },
-    { key: "turkish", label: "Turkish", query: "Turkish" },
   ] as const;
 
   const [activeFilterKey, setActiveFilterKey] =
@@ -101,8 +91,9 @@ export default function CourseSuggestionsScreen() {
   const buildQuery = () => {
     const cat = String(category || "").trim();
     const base = cat ? `${cat} course tutorial` : "course tutorial";
-    if (activeFilter.key === "trending") return base;
-    return `${activeFilter.query} ${base}`;
+    const topic =
+      activeFilter.key === "trending" ? base : `${activeFilter.query} ${base}`;
+    return withContentLanguage(topic, contentLanguage);
   };
 
   // Each card gets an identical pixel width
@@ -120,12 +111,12 @@ export default function CourseSuggestionsScreen() {
 
   useEffect(() => {
     if (category) loadVideos();
-  }, [category, activeFilterKey]);
+  }, [category, activeFilterKey, contentLanguage]);
 
   const loadVideos = async () => {
     setLoading(true);
     fadeAnim.setValue(0);
-    const data = await searchVideos(buildQuery());
+    const data = await searchVideos(buildQuery(), undefined, contentLanguage);
     setVideos(uniqueVideos(data.videos));
     setNextPageToken(data.nextPageToken);
     setLoading(false);
@@ -139,7 +130,7 @@ export default function CourseSuggestionsScreen() {
   const loadMore = async () => {
     if (loadingMore || !nextPageToken || !category) return;
     setLoadingMore(true);
-    const data = await searchVideos(buildQuery(), nextPageToken);
+    const data = await searchVideos(buildQuery(), nextPageToken, contentLanguage);
     setVideos((prev) => uniqueVideos([...prev, ...data.videos]));
     setNextPageToken(data.nextPageToken);
     setLoadingMore(false);

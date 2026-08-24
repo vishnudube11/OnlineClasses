@@ -1,4 +1,5 @@
 import { logger } from "@/src/utils/logger";
+import { normalizeAppLanguage } from "@/src/i18n/contentLanguage";
 import axios from "axios";
 
 export interface Video {
@@ -61,14 +62,16 @@ export const fetchTrendingVideos = async (
 export const searchVideos = async (
   query: string,
   pageToken?: string,
+  language?: string,
 ): Promise<FetchResponse> => {
-  logger.api("Searching videos", { query, pageToken });
+  logger.api("Searching videos", { query, pageToken, language });
   try {
     if (!query) return fetchTrendingVideos(pageToken);
 
     const result = await apiGet<FetchResponse>("/api/youtube/search", {
       q: query,
       pageToken,
+      lang: language ? normalizeAppLanguage(language) : undefined,
     });
     logger.api("Video search completed", {
       query,

@@ -377,6 +377,83 @@ const parseDuration = (duration) => {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 };
 
+const SUPPORTED_LANGUAGES = require(path.join(
+  __dirname,
+  "../src/i18n/supportedLanguages.json",
+));
+
+const CONTENT_LANGUAGE_CONFIG = Object.fromEntries(
+  SUPPORTED_LANGUAGES.map((language) => [
+    language.code,
+    {
+      relevanceLanguage: language.relevanceLanguage,
+      regionCode: language.regionCode,
+      keywords: language.keywords || [],
+      scriptStart: language.scriptStart || "",
+      scriptEnd: language.scriptEnd || "",
+    },
+  ]),
+);
+
+const parseLangCode = (raw) => {
+  if (typeof raw !== "string") return "";
+  return raw.trim().toLowerCase().split("-")[0].slice(0, 2);
+};
+
+const textMatchesLanguage = (text, language) => {
+  const config = CONTENT_LANGUAGE_CONFIG[language];
+  if (!config) return false;
+
+  const lower = String(text || "").toLowerCase();
+  if (
+    (config.keywords || []).some((keyword) =>
+      lower.includes(String(keyword).toLowerCase()),
+    )
+  ) {
+    return true;
+  }
+
+  if (config.scriptStart && config.scriptEnd) {
+    const scriptRe = new RegExp(
+      `[\\u${config.scriptStart}-\\u${config.scriptEnd}]`,
+    );
+    if (!scriptRe.test(text)) return false;
+    if (language === "zh" && /[\u3040-\u30FF]/.test(text)) return false;
+    if (language === "ja") return /[\u3040-\u30FF]/.test(text);
+    if (language === "ur") return /urdu|اردو/i.test(text);
+    if (language === "ar") return /arabic|العربية|عربي/i.test(text) || scriptRe.test(text);
+    if (language === "mr") return /marathi|मराठी/i.test(text);
+    if (language === "hi") return /hindi|हिंदी|हिन्दी/i.test(text) || scriptRe.test(text);
+    return true;
+  }
+
+  return false;
+};
+
+const matchesSelectedLanguage = (snippet, lang) => {
+  if (!lang) return true;
+
+  const title = String(snippet?.title || "");
+  const description = String(snippet?.description || "");
+  const text = `${title} ${description}`;
+  const audio = parseLangCode(snippet?.defaultAudioLanguage);
+  const defaultLang = parseLangCode(snippet?.defaultLanguage);
+
+  if (audio) return audio === lang;
+  if (defaultLang) return defaultLang === lang;
+
+  if (!CONTENT_LANGUAGE_CONFIG[lang]) return true;
+
+  if (lang === "en") {
+    return !SUPPORTED_LANGUAGES.some(
+      (language) =>
+        language.code !== "en" && textMatchesLanguage(text, language.code),
+    );
+  }
+
+  return textMatchesLanguage(text, lang);
+};
+
 app.get("/api/youtube/trending", youtubeLimiter, async (req, res) => {
   logger.info("YouTube trending requested", {
     pageToken: req.query?.pageToken,
@@ -429,14 +506,16 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
     pageToken: req.query?.pageToken,
   });
   try {
-    const { q, pageToken } = req.query || {};
+    const { q, pageToken, lang } = req.query || {};
     const query = typeof q === "string" ? q.trim() : "";
+    const language = parseLangCode(lang);
+    const languageConfig = CONTENT_LANGUAGE_CONFIG[language] || null;
 
     if (!query) {
       logger.warn("YouTube search: missing query");
       return res.status(400).json({ error: "q is required" });
     }
-    if (query.length > 200) {
+    if (query.length > 250) {
       logger.warn("YouTube search: query too long", { length: query.length });
       return res.status(400).json({ error: "q is too long" });
     }
@@ -445,11 +524,20 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
       part: "snippet",
       q: query,
       type: "video,playlist",
-      maxResults: 15,
+      maxResults: languageConfig ? 50 : 15,
       pageToken: pageToken || undefined,
+      ...(languageConfig
+        ? {
+            relevanceLanguage: languageConfig.relevanceLanguage,
+            regionCode: languageConfig.regionCode,
+          }
+        : {}),
     };
 
-    const cacheKey = getCacheKey("search", searchParams);
+    const cacheKey = getCacheKey("search", {
+      ...searchParams,
+      v: languageConfig ? "lang3" : "1",
+    });
     const cached = await firestoreCacheGet(cacheKey);
     if (cached) {
       logger.info("YouTube search cache hit", { query });
@@ -489,7 +577,8 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
           details &&
           details.status?.embeddable === true &&
           details.status?.privacyStatus === "public" &&
-          details.snippet?.categoryId !== "10"
+          details.snippet?.categoryId !== "10" &&
+          matchesSelectedLanguage(details.snippet, languageConfig ? language : "")
         ) {
           mappedItems.push({
             id: details.id,
@@ -512,6 +601,9 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
           });
         }
       } else if (item.id?.kind === "youtube#playlist") {
+        if (!matchesSelectedLanguage(item.snippet, languageConfig ? language : "")) {
+          return;
+        }
         mappedItems.push({
           id: item.id.playlistId,
           type: "playlist",
