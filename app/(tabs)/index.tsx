@@ -1,5 +1,6 @@
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
+import AppTopBar from "@/src/components/AppTopBar";
 import LanguageSelector from "@/src/components/LanguageSelector";
 import { useAuth } from "@/src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -272,7 +273,7 @@ export default function CourseSelectionScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -446,14 +447,9 @@ export default function CourseSelectionScreen() {
           colors={isDark ? ["#1a0000", "#0f0f0f"] : ["#ff1a1a", "#cc0000"]}
           style={styles.hero}
         >
+          <AppTopBar variant="onHero" />
           <View style={styles.heroContent}>
             <View style={styles.heroLeft}>
-              <View style={styles.brandRow}>
-                <View style={styles.brandBadge}>
-                  <Ionicons name="school" size={18} color="#fff" />
-                </View>
-                <Text style={styles.brandText}>Online Classes</Text>
-              </View>
               <Text style={styles.heroGreeting}>{t("welcome.greeting")}</Text>
               <Text style={styles.heroName}>{user?.name || "Student"} 👋</Text>
               <Text style={styles.heroSubtext}>{t("welcome.subtext")}</Text>
@@ -465,10 +461,6 @@ export default function CourseSelectionScreen() {
                 <Text style={styles.heroSubtext}>{visitorCountError}</Text>
               )}
             </View>
-            <Pressable onPress={logout} style={styles.logoutPill}>
-              <Ionicons name="log-out-outline" size={16} color="#fff" />
-              <Text style={styles.logoutText}>{t("auth.logout")}</Text>
-            </Pressable>
             <Pressable
               onPress={() => setShowLanguageSelector(true)}
               style={styles.languagePill}
@@ -636,7 +628,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   hero: {
-    paddingTop: 24,
+    paddingTop: 8,
     paddingBottom: 32,
     paddingHorizontal: 20,
   },
@@ -682,15 +674,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.65)",
   },
-  logoutPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6,
-  },
   logoutText: {
     color: "#fff",
     fontSize: 13,
@@ -704,7 +687,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 6,
-    marginLeft: 8,
   },
   searchWrapper: {
     marginTop: 4,
