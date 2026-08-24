@@ -1,0 +1,45 @@
+{
+  "welcome": {
+    "greeting": "वापसी पर स्वागत है,",
+    "subtext": "आज आप क्या सीखना चाहते हैं?",
+    "visitors": "आगंतुक:"
+  },
+  "search": {
+    "placeholder": "लोकप्रिय कोर्स खोजें...",
+    "noResults": "कोई कोर्स नहीं मिला",
+    "selectFromList": "कृपया सुझाव सूची से एक कोर्स चुनें"
+  },
+  "courses": {
+    "title": "लोकप्रिय कोर्स",
+    "subtitle": "क्यूरेटेड वीडियो पाठ देखने के लिए किसी भी कोर्स पर टैप करें"
+  },
+  "alert": {
+    "courseNotFound": "कोर्स नहीं मिला",
+    "courseNotFoundMessage": "कृपया नीचे दी गई सुझाव सूची से एक कोर्स चुनें। केवल लोकप्रिय कोर्स उपलब्ध हैं।",
+    "viewSuggestions": "सुझाव देखें"
+  },
+  "auth": {
+    "login": "लॉगिन",
+    "logout": "लॉगआउट",
+    "signInWithGoogle": "Google से साइन इन करें",
+    "orLoginWithMobile": "या मोबाइल से लॉगिन करें",
+    "enterPhoneNumber": "फ़ोन नंबर दर्ज करें",
+    "sendOtp": "OTP भेजें",
+    "enterOtp": "OTP दर्ज करें",
+    "verifyOtp": "OTP सत्यापित करें",
+    "phonePlaceholder": "+91 XXXXX XXXXX"
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "retry": "पुनः प्रयास करें",
+    "cancel": "रद्द करें",
+    "save": "सहेजें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "close": "बंद करें",
+    "language": "भाषा",
+    "selectLanguage": "भाषा चुनें",
+    "searchLanguage": "भाषा खोजें"
+  }
+}

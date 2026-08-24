@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import React from "react";
 import {
     Image,
@@ -21,13 +21,6 @@ function CustomHeader() {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
-
-  // Pre-flatten the style so expo-router's <Slot> never receives an array
-  const searchBtnStyle = StyleSheet.flatten([
-    styles.iconButton,
-    styles.searchIconBtn,
-    { backgroundColor: theme.tint + "15" },
-  ]);
 
   return (
     <View
@@ -60,11 +53,6 @@ function CustomHeader() {
         <Pressable style={styles.iconButton}>
           <Ionicons name="notifications-outline" size={22} color={theme.text} />
         </Pressable>
-        <Link href="/two" asChild>
-          <Pressable style={searchBtnStyle}>
-            <Ionicons name="search" size={18} color={theme.text} />
-          </Pressable>
-        </Link>
         {user && (
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>
@@ -221,9 +209,6 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: 8,
     borderRadius: 20,
-  },
-  searchIconBtn: {
-    paddingHorizontal: 12,
   },
   avatarCircle: {
     width: 32,

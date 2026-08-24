@@ -1,0 +1,45 @@
+{
+  "welcome": {
+    "greeting": "Welcome back,",
+    "subtext": "What do you want to learn today?",
+    "visitors": "Visitors:"
+  },
+  "search": {
+    "placeholder": "Search popular courses...",
+    "noResults": "No courses found",
+    "selectFromList": "Please select a course from the suggestions list"
+  },
+  "courses": {
+    "title": "Popular Courses",
+    "subtitle": "Tap any course to see curated video lessons"
+  },
+  "alert": {
+    "courseNotFound": "Course Not Found",
+    "courseNotFoundMessage": "Please select a course from the suggestions list below. Only popular courses are available.",
+    "viewSuggestions": "View Suggestions"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "signInWithGoogle": "Sign in with Google",
+    "orLoginWithMobile": "Or login with mobile",
+    "enterPhoneNumber": "Enter phone number",
+    "sendOtp": "Send OTP",
+    "enterOtp": "Enter OTP",
+    "verifyOtp": "Verify OTP",
+    "phonePlaceholder": "+91 XXXXX XXXXX"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "language": "Language",
+    "selectLanguage": "Select language",
+    "searchLanguage": "Search language"
+  }
+}

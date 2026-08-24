@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, FlatList, View, TextInput, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { searchVideos, Video } from '@/src/api/youtube';
 import VideoCard from '@/src/components/VideoCard';
+import { withContentLanguage } from '@/src/i18n/contentLanguage';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function TabTwoScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,7 +21,11 @@ export default function TabTwoScreen() {
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
-    const data = await searchVideos(query);
+    const data = await searchVideos(
+      withContentLanguage(query, i18n.language),
+      undefined,
+      i18n.language,
+    );
     setVideos(data.videos);
     setNextPageToken(data.nextPageToken);
     setLoading(false);
@@ -27,7 +34,11 @@ export default function TabTwoScreen() {
   const loadMore = async () => {
     if (loadingMore || !nextPageToken || !query.trim()) return;
     setLoadingMore(true);
-    const data = await searchVideos(query, nextPageToken);
+    const data = await searchVideos(
+      withContentLanguage(query, i18n.language),
+      nextPageToken,
+      i18n.language,
+    );
     setVideos(prev => [...prev, ...data.videos]);
     setNextPageToken(data.nextPageToken);
     setLoadingMore(false);
