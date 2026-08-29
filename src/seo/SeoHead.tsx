@@ -1,4 +1,6 @@
 import Head from "expo-router/head";
+import { useEffect } from "react";
+import { Platform } from "react-native";
 
 import {
   DEFAULT_TITLE,
@@ -24,6 +26,12 @@ export default function SeoHead({
   const url = SITE_URL
     ? `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`
     : undefined;
+
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      document.title = title;
+    }
+  }, [title]);
 
   return (
     <Head>

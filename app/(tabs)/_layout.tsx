@@ -1,6 +1,7 @@
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
 import AppTopBar from "@/src/components/AppTopBar";
+import { DEFAULT_TITLE, SITE_NAME } from "@/src/seo/config";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useSegments } from "expo-router";
 import React from "react";
@@ -31,12 +32,14 @@ export default function TabLayout() {
             fontWeight: "500",
           },
           headerShown: false,
+          title: SITE_NAME,
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
-            title: "Home",
+            title: DEFAULT_TITLE,
+            tabBarLabel: "Home",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "home" : "home-outline"}
@@ -62,7 +65,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="add"
           options={{
-            title: "",
+            title: SITE_NAME,
+            tabBarLabel: "",
             tabBarIcon: () => (
               <View style={styles.addButton}>
                 <Ionicons name="add" color="#fff" size={22} />

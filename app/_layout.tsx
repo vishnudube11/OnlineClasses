@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider, useAuth } from "@/src/context/AuthContext";
 import { i18n, loadSavedLanguage } from "@/src/i18n";
+import { DEFAULT_TITLE, SITE_NAME } from "@/src/seo/config";
 import { I18nextProvider } from "react-i18next";
 
 export {
@@ -89,10 +90,33 @@ function ProtectedLayout() {
   }, [user, isLoading, segments]);
 
   return (
-    <Stack>
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        title: SITE_NAME,
+      }}
+    >
+      <Stack.Screen
+        name="login"
+        options={{ headerShown: false, title: `Login | ${SITE_NAME}` }}
+      />
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: false, title: DEFAULT_TITLE }}
+      />
+      <Stack.Screen
+        name="course/[category]"
+        options={{ headerShown: false, title: `Courses | ${SITE_NAME}` }}
+      />
+      <Stack.Screen
+        name="video/[id]"
+        options={{ headerShown: false, title: `Watch | ${SITE_NAME}` }}
+      />
+      <Stack.Screen
+        name="pay/[category]"
+        options={{ headerShown: false, title: `Checkout | ${SITE_NAME}` }}
+      />
+      <Stack.Screen name="modal" options={{ presentation: "modal", title: SITE_NAME }} />
     </Stack>
   );
 }
