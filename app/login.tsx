@@ -1,4 +1,5 @@
 import { useAuth } from "@/src/context/AuthContext";
+import SeoHead from "@/src/seo/SeoHead";
 import { Ionicons } from "@expo/vector-icons";
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { LinearGradient } from "expo-linear-gradient";
@@ -51,6 +52,12 @@ export default function LoginScreen() {
   }, []);
 
   return (
+    <>
+      <SeoHead
+        title="Login | OnlineClasses"
+        description="Sign in to OnlineClasses with Google or mobile OTP and start learning video courses in your language."
+        path="/login"
+      />
     <LinearGradient
       colors={["#0a0a0a", "#111827", "#0f1a2e"]}
       style={styles.gradient}
@@ -207,6 +214,7 @@ export default function LoginScreen() {
         </Text>
       </Animated.View>
     </LinearGradient>
+    </>
   );
 }
 

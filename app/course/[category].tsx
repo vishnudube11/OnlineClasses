@@ -3,6 +3,8 @@ import Colors from "@/constants/Colors";
 import { searchVideos, Video } from "@/src/api/youtube";
 import VideoCard from "@/src/components/VideoCard";
 import { withContentLanguage } from "@/src/i18n/contentLanguage";
+import { pageTitle } from "@/src/seo/config";
+import SeoHead from "@/src/seo/SeoHead";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -160,6 +162,11 @@ export default function CourseSuggestionsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <SeoHead
+          title={pageTitle(`${category} tutorials`)}
+          description={`Watch ${category} video tutorials and playlists on OnlineClasses, filtered to your selected language.`}
+          path={`/course/${encodeURIComponent(String(category || ""))}`}
+        />
         <Hero />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#ff0000" />
@@ -173,6 +180,11 @@ export default function CourseSuggestionsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <SeoHead
+        title={pageTitle(`${category} tutorials`)}
+        description={`Watch ${category} video tutorials and playlists on OnlineClasses, filtered to your selected language.`}
+        path={`/course/${encodeURIComponent(String(category || ""))}`}
+      />
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
