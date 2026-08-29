@@ -1,9 +1,25 @@
 {
-  "buildCommand": "npx expo export -p web",
+  "buildCommand": "npx expo export -p web && cp -f public/googlea072d3ba78b95283.html public/robots.txt public/sitemap.xml dist/",
   "outputDirectory": "dist",
+  "cleanUrls": false,
+  "headers": [
+    {
+      "source": "/googlea072d3ba78b95283.html",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/html; charset=UTF-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
-      "source": "/((?!robots.txt|sitemap.xml).*)",
+      "source": "/((?!robots.txt$|sitemap.xml$|googlea072d3ba78b95283.html$).*)",
       "destination": "/index.html"
     }
   ]
