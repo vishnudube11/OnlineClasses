@@ -1,7 +1,7 @@
 export const SITE_NAME = "OnlineClasses";
 
 export const SITE_URL = (
-  process.env.EXPO_PUBLIC_WEB_URL || ""
+  process.env.EXPO_PUBLIC_WEB_URL || "https://www.online-classes.in"
 ).replace(/\/$/, "");
 
 export const SITE_DESCRIPTION =
