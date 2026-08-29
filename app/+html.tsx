@@ -1,26 +1,64 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset } from "expo-router/html";
 
-// This file is web-only and used to configure the root HTML for every
-// web page during static rendering.
-// The contents of this function only run in Node.js environments and
-// do not have access to the DOM or browser APIs.
+import {
+  DEFAULT_TITLE,
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_NAME,
+  SITE_URL,
+} from "@/src/seo/config";
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: SITE_NAME,
+  ...(SITE_URL ? { url: SITE_URL } : {}),
+  description: SITE_DESCRIPTION,
+  applicationCategory: "EducationalApplication",
+  operatingSystem: "Android, Web",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "INR",
+  },
+};
+
 export default function Root({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no"
+        />
+        <title>{DEFAULT_TITLE}</title>
+        <meta name="description" content={SITE_DESCRIPTION} />
+        <meta name="keywords" content={SITE_KEYWORDS} />
+        <meta name="author" content={SITE_NAME} />
+        <meta name="application-name" content={SITE_NAME} />
+        <meta name="robots" content="index, follow" />
+        <meta name="theme-color" content="#cc0000" />
+        {SITE_URL ? <link rel="canonical" href={SITE_URL} /> : null}
 
-        {/* 
-          Disable body scrolling on web. This makes ScrollView components work closer to how they do on native. 
-          However, body scrolling is often nice to have for mobile web. If you want to enable it, remove this line.
-        */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content={SITE_NAME} />
+        <meta property="og:title" content={DEFAULT_TITLE} />
+        <meta property="og:description" content={SITE_DESCRIPTION} />
+        {SITE_URL ? <meta property="og:url" content={SITE_URL} /> : null}
+        <meta property="og:locale" content="en_IN" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={DEFAULT_TITLE} />
+        <meta name="twitter:description" content={SITE_DESCRIPTION} />
+
         <ScrollViewStyleReset />
-
-        {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
-        {/* Add any additional <head> elements that you want globally available on web... */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </head>
       <body>{children}</body>
     </html>

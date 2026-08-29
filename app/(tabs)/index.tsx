@@ -3,6 +3,7 @@ import Colors from "@/constants/Colors";
 import AppTopBar from "@/src/components/AppTopBar";
 import LanguageSelector from "@/src/components/LanguageSelector";
 import { useAuth } from "@/src/context/AuthContext";
+import SeoHead from "@/src/seo/SeoHead";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -395,6 +396,11 @@ export default function CourseSelectionScreen() {
 
   return (
     <View style={[{ flex: 1 }, { backgroundColor: theme.background }]}>
+      <SeoHead
+        title="OnlineClasses | Learn Java, AI, Python in Your Language"
+        description="Browse popular video courses in Java, Python, AI, ML, and more. Watch tutorials in English, Hindi, Tamil, Telugu, and other languages."
+        path="/"
+      />
       {/* Custom Alert Modal */}
       {showAlert && (
         <View style={styles.alertOverlay}>
