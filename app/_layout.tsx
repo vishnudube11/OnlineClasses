@@ -100,9 +100,10 @@ function ProtectedLayout() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "login";
+    const isPublicPage =
+      inAuthGroup || segments[0] === "(tabs)" || segments[0] === "course";
 
-    if (!user && !inAuthGroup) {
-      // Redirect to the login page.
+    if (!user && !isPublicPage) {
       router.replace("/login");
     } else if (user && inAuthGroup) {
       // Redirect away from the login page.
@@ -124,7 +125,7 @@ function ProtectedLayout() {
     >
       <Stack.Screen
         name="login"
-        options={{ headerShown: false, title: `Login | ${SITE_NAME}` }}
+        options={{ headerShown: false, title: DEFAULT_TITLE }}
       />
       <Stack.Screen
         name="(tabs)"

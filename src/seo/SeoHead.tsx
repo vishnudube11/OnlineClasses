@@ -15,6 +15,7 @@ type SeoHeadProps = {
   description?: string;
   path?: string;
   keywords?: string;
+  noIndex?: boolean;
 };
 
 export default function SeoHead({
@@ -22,6 +23,7 @@ export default function SeoHead({
   description = SITE_DESCRIPTION,
   path = "/",
   keywords = SITE_KEYWORDS,
+  noIndex = false,
 }: SeoHeadProps) {
   const url = SITE_URL
     ? `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`
@@ -35,8 +37,8 @@ export default function SeoHead({
 
   return (
     <Head>
-      <title>{title}</title>
       <meta name="description" content={description} />
+      {noIndex ? <meta name="robots" content="noindex, follow" /> : null}
       <meta name="keywords" content={keywords} />
       <meta name="application-name" content={SITE_NAME} />
       {url ? <link rel="canonical" href={url} /> : null}
