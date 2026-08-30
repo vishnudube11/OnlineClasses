@@ -36,6 +36,7 @@ yarn-error.*
 /server/.env
 /server/serviceAccount.json
 /server/visitor-count.json
+/server/access-log.jsonl
 /app/google-services.json
 
 # typescript

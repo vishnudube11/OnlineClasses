@@ -16,7 +16,17 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.online-classes.in/course/Python</loc>
+    <loc>https://www.online-classes.in/course/Robotics</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Embedded%20Systems</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Game%20Development</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -44,5 +54,60 @@
     <loc>https://www.online-classes.in/course/Telugu</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/JEE%20Main</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/JEE%20Advanced</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/NEET</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/UPSC</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Class%2012%20Physics</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Class%2011%20Physics</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Class%209%20Maths</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Class%206%20Maths</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Class%201%20Maths</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Nursery%20Rhymes%20for%20Kids</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.online-classes.in/course/Science%20Experiments%20for%20Kids</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

@@ -157,6 +157,53 @@ try {
   logger.error("Failed to initialize Firebase Admin", err);
 }
 
+const ACCESS_LOG_FILE = path.join(__dirname, "access-log.jsonl");
+const ACCESS_LOG_ADMIN_KEY = process.env.ACCESS_LOG_ADMIN_KEY || "";
+
+const tryFirebaseUser = async (req) => {
+  if (!firestore) return null;
+  const idToken = getBearerToken(req);
+  if (!idToken) return null;
+  try {
+    return await admin.auth().verifyIdToken(idToken);
+  } catch {
+    return null;
+  }
+};
+
+const clipText = (value, max = 200) => {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, max);
+};
+
+const appendAccessLogFile = (entry) => {
+  try {
+    fs.appendFileSync(ACCESS_LOG_FILE, `${JSON.stringify(entry)}\n`);
+  } catch (err) {
+    logger.warn("Failed to append access log file", { error: err?.message });
+  }
+};
+
+const readAccessLogFile = (limit = 200) => {
+  try {
+    if (!fs.existsSync(ACCESS_LOG_FILE)) return [];
+    const lines = fs.readFileSync(ACCESS_LOG_FILE, "utf8").split("\n").filter(Boolean);
+    return lines
+      .slice(-Math.min(limit, 500))
+      .reverse()
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+};
+
 const getBearerToken = (req) => {
   const raw = req.headers.authorization;
   if (!raw) return null;
@@ -365,13 +412,21 @@ const formatViewCount = (views) => {
   return String(num);
 };
 
+const isoDurationToSeconds = (duration) => {
+  if (!duration || typeof duration !== "string") return 0;
+  const hours = parseInt((duration.match(/(\d+)H/) || [])[1] || "0", 10);
+  const minutes = parseInt((duration.match(/(\d+)M/) || [])[1] || "0", 10);
+  const seconds = parseInt((duration.match(/(\d+)S/) || [])[1] || "0", 10);
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
+const MIN_VIDEO_DURATION_SEC = 15 * 60;
+
 const parseDuration = (duration) => {
   if (!duration) return "0:00";
-  const match = String(duration).match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-  if (!match) return "0:00";
-  const hours = parseInt(match[1]) || 0;
-  const minutes = parseInt(match[2]) || 0;
-  const seconds = parseInt(match[3]) || 0;
+  const hours = parseInt((String(duration).match(/(\d+)H/) || [])[1] || "0", 10);
+  const minutes = parseInt((String(duration).match(/(\d+)M/) || [])[1] || "0", 10);
+  const seconds = parseInt((String(duration).match(/(\d+)S/) || [])[1] || "0", 10);
   if (hours > 0)
     return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
@@ -532,23 +587,18 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
       return res.status(400).json({ error: "q is too long" });
     }
 
-    const searchParams = {
-      part: "snippet",
-      q: query,
-      type: "video,playlist",
-      maxResults: languageConfig ? 50 : 15,
-      pageToken: pageToken || undefined,
-      ...(languageConfig
-        ? {
-            relevanceLanguage: languageConfig.relevanceLanguage,
-            regionCode: languageConfig.regionCode,
-          }
-        : {}),
-    };
+    const langParams = languageConfig
+      ? {
+          relevanceLanguage: languageConfig.relevanceLanguage,
+          regionCode: languageConfig.regionCode,
+        }
+      : {};
 
     const cacheKey = getCacheKey("search", {
-      ...searchParams,
-      v: languageConfig ? "lang3" : "1",
+      q: query,
+      pageToken: pageToken || "",
+      lang: language || "",
+      v: "pl-first-long15-v1",
     });
     const cached = await firestoreCacheGet(cacheKey);
     if (cached) {
@@ -556,14 +606,85 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
       return res.json(cached);
     }
 
+    const isFirstPage = !pageToken;
+    let playlistCards = [];
+
+    if (isFirstPage) {
+      const playlistSearch = await ytGet("/search", {
+        part: "snippet",
+        q: query,
+        type: "playlist",
+        order: "viewCount",
+        maxResults: 15,
+        ...langParams,
+      });
+      const playlistItems = playlistSearch.items || [];
+      const playlistIds = playlistItems
+        .map((item) => item.id?.playlistId)
+        .filter(Boolean)
+        .join(",");
+
+      const playlistDetailsMap = {};
+      if (playlistIds) {
+        const playlistsData = await ytGet("/playlists", {
+          part: "snippet,contentDetails,status",
+          id: playlistIds,
+        });
+        (playlistsData.items || []).forEach((item) => {
+          playlistDetailsMap[item.id] = item;
+        });
+      }
+
+      playlistCards = playlistItems
+        .filter((item) => item.id?.kind === "youtube#playlist")
+        .filter((item) =>
+          matchesSelectedLanguage(
+            item.snippet,
+            languageConfig ? language : "",
+          ),
+        )
+        .map((item) => {
+          const details = playlistDetailsMap[item.id.playlistId];
+          if (details?.status?.privacyStatus && details.status.privacyStatus !== "public") {
+            return null;
+          }
+          return {
+            id: item.id.playlistId,
+            type: "playlist",
+            title: item.snippet?.title || "Unknown Playlist",
+            thumbnail:
+              item.snippet?.thumbnails?.high?.url ||
+              item.snippet?.thumbnails?.medium?.url ||
+              "https://via.placeholder.com/640x360.png?text=Playlist",
+            channelTitle: item.snippet?.channelTitle || "Unknown Channel",
+            channelAvatar:
+              "https://ui-avatars.com/api/?name=" +
+              encodeURIComponent(item.snippet?.channelTitle || "U") +
+              "&background=random",
+            views: "Playlist",
+            publishedAt: item.snippet?.publishedAt
+              ? new Date(item.snippet.publishedAt).toLocaleDateString()
+              : "Unknown Data",
+            duration: details?.contentDetails?.itemCount
+              ? `${details.contentDetails.itemCount} videos`
+              : "Playlist",
+          };
+        })
+        .filter(Boolean);
+    }
+
+    const searchParams = {
+      part: "snippet",
+      q: query,
+      type: "video",
+      order: "viewCount",
+      maxResults: 50,
+      pageToken: pageToken || undefined,
+      ...langParams,
+    };
+
     const searchData = await ytGet("/search", searchParams);
     const items = searchData.items || [];
-    if (items.length === 0) {
-      const payload = { videos: [], nextPageToken: undefined };
-      await firestoreCacheSet(cacheKey, payload, "search", searchParams);
-      logger.info("YouTube search: no results", { query });
-      return res.json(payload);
-    }
 
     const videoItems = items.filter(
       (item) => item.id?.kind === "youtube#video",
@@ -583,69 +704,72 @@ app.get("/api/youtube/search", youtubeLimiter, async (req, res) => {
 
     const mappedItems = [];
     items.forEach((item) => {
-      if (item.id?.kind === "youtube#video") {
-        const details = videoDetailsMap[item.id.videoId];
-        if (
-          details &&
-          details.status?.embeddable === true &&
-          details.status?.privacyStatus === "public" &&
-          details.snippet?.categoryId !== "10" &&
-          matchesSelectedLanguage(details.snippet, languageConfig ? language : "")
-        ) {
-          mappedItems.push({
-            id: details.id,
-            type: "video",
-            title: details.snippet?.title || "Unknown Title",
-            thumbnail:
-              details.snippet?.thumbnails?.high?.url ||
-              details.snippet?.thumbnails?.medium?.url ||
-              "https://via.placeholder.com/640x360.png?text=No+Thumbnail",
-            channelTitle: details.snippet?.channelTitle || "Unknown Channel",
-            channelAvatar:
-              "https://ui-avatars.com/api/?name=" +
-              encodeURIComponent(details.snippet?.channelTitle || "U") +
-              "&background=random",
-            views: formatViewCount(details.statistics?.viewCount),
-            publishedAt: details.snippet?.publishedAt
-              ? new Date(details.snippet.publishedAt).toLocaleDateString()
-              : "Unknown Data",
-            duration: parseDuration(details.contentDetails?.duration),
-          });
-        }
-      } else if (item.id?.kind === "youtube#playlist") {
-        if (!matchesSelectedLanguage(item.snippet, languageConfig ? language : "")) {
-          return;
-        }
-        mappedItems.push({
-          id: item.id.playlistId,
-          type: "playlist",
-          title: item.snippet?.title || "Unknown Playlist",
-          thumbnail:
-            item.snippet?.thumbnails?.high?.url ||
-            item.snippet?.thumbnails?.medium?.url ||
-            "https://via.placeholder.com/640x360.png?text=Playlist",
-          channelTitle: item.snippet?.channelTitle || "Unknown Channel",
-          channelAvatar:
-            "https://ui-avatars.com/api/?name=" +
-            encodeURIComponent(item.snippet?.channelTitle || "U") +
-            "&background=random",
-          views: "Playlist",
-          publishedAt: item.snippet?.publishedAt
-            ? new Date(item.snippet.publishedAt).toLocaleDateString()
-            : "Unknown Data",
-          duration: "Playlist",
-        });
+      if (item.id?.kind !== "youtube#video") return;
+      const details = videoDetailsMap[item.id.videoId];
+      if (
+        !details ||
+        details.status?.embeddable !== true ||
+        details.status?.privacyStatus !== "public" ||
+        details.snippet?.categoryId === "10" ||
+        !matchesSelectedLanguage(details.snippet, languageConfig ? language : "")
+      ) {
+        return;
       }
+
+      const durationSeconds = isoDurationToSeconds(
+        details.contentDetails?.duration,
+      );
+      if (durationSeconds <= MIN_VIDEO_DURATION_SEC) return;
+
+      const viewCount = parseInt(details.statistics?.viewCount, 10) || 0;
+      const commentCount = parseInt(details.statistics?.commentCount, 10) || 0;
+
+      mappedItems.push({
+        id: details.id,
+        type: "video",
+        title: details.snippet?.title || "Unknown Title",
+        thumbnail:
+          details.snippet?.thumbnails?.high?.url ||
+          details.snippet?.thumbnails?.medium?.url ||
+          "https://via.placeholder.com/640x360.png?text=No+Thumbnail",
+        channelTitle: details.snippet?.channelTitle || "Unknown Channel",
+        channelAvatar:
+          "https://ui-avatars.com/api/?name=" +
+          encodeURIComponent(details.snippet?.channelTitle || "U") +
+          "&background=random",
+        views: formatViewCount(details.statistics?.viewCount),
+        publishedAt: details.snippet?.publishedAt
+          ? new Date(details.snippet.publishedAt).toLocaleDateString()
+          : "Unknown Data",
+        duration: parseDuration(details.contentDetails?.duration),
+        _viewCount: viewCount,
+        _commentCount: commentCount,
+      });
     });
 
+    mappedItems.sort((a, b) => {
+      if (b._viewCount !== a._viewCount) return b._viewCount - a._viewCount;
+      return b._commentCount - a._commentCount;
+    });
+
+    const longVideos = mappedItems.map(
+      ({ _viewCount, _commentCount, ...video }) => video,
+    );
+    const videos = [...playlistCards, ...longVideos];
+
     const payload = {
-      videos: mappedItems,
+      videos,
       nextPageToken: searchData.nextPageToken,
     };
-    await firestoreCacheSet(cacheKey, payload, "search", searchParams);
+    await firestoreCacheSet(cacheKey, payload, "search", {
+      q: query,
+      pageToken: pageToken || "",
+      v: "pl-first-long15-v1",
+    });
     logger.info("YouTube search completed", {
       query,
-      count: mappedItems.length,
+      playlists: playlistCards.length,
+      videos: longVideos.length,
     });
     return res.json(payload);
   } catch (err) {
@@ -1080,35 +1204,92 @@ app.post("/api/payments/mark-paid", async (req, res) => {
   }
 });
 
-// Visit history endpoints
-app.post("/api/visits/log", async (req, res) => {
-  logger.info("Visit log requested", { screen: req.body?.screen });
-  const user = await requireFirebaseUser(req, res);
-  if (!user) return;
-
+// Visit / access logs (guests and signed-in users)
+app.post("/api/visits/log", visitorsLimiter, async (req, res) => {
   try {
-    const { screen, action, details } = req.body || {};
+    const user = await tryFirebaseUser(req);
+    const { screen, action, details, guestId, userName, userEmail } =
+      req.body || {};
 
     if (!screen || typeof screen !== "string") {
-      logger.warn("Visit log: missing screen", { uid: user.uid });
       return res.status(400).json({ error: "screen is required" });
     }
 
-    const visitRef = firestore.collection("visitHistory").doc();
-    await visitRef.set({
-      userId: user.uid,
-      userEmail: user.email,
-      screen,
-      action: action || "view",
-      details: details || {},
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    const ip =
+      String(req.headers["x-forwarded-for"] || "")
+        .split(",")[0]
+        .trim() ||
+      req.socket?.remoteAddress ||
+      "";
+
+    const entry = {
+      userId: user?.uid || null,
+      userEmail: clipText(user?.email || userEmail || "", 120) || null,
+      userName: clipText(user?.name || userName || "", 80) || null,
+      guestId: clipText(typeof guestId === "string" ? guestId : "", 80) || null,
+      screen: clipText(screen, 160),
+      action: clipText(typeof action === "string" ? action : "view", 40),
+      details:
+        details && typeof details === "object" && !Array.isArray(details)
+          ? details
+          : {},
+      ip: clipText(ip, 80) || null,
+      userAgent: clipText(String(req.headers["user-agent"] || ""), 240) || null,
+      at: new Date().toISOString(),
+    };
+
+    appendAccessLogFile(entry);
+    logger.info("Access log", {
+      who: entry.userEmail || entry.userName || entry.guestId || "guest",
+      screen: entry.screen,
+      action: entry.action,
+      details: entry.details,
     });
 
-    logger.info("Visit logged successfully", { uid: user.uid, screen, action });
+    if (firestore) {
+      await firestore.collection("accessLogs").add({
+        ...entry,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
     return res.json({ ok: true });
   } catch (err) {
     logger.error("Visit log error", err, { screen: req.body?.screen });
     return res.status(500).json({ error: "Failed to log visit" });
+  }
+});
+
+app.get("/api/visits/all", async (req, res) => {
+  const provided =
+    req.headers["x-admin-key"] ||
+    (typeof req.query.key === "string" ? req.query.key : "");
+  if (!ACCESS_LOG_ADMIN_KEY || provided !== ACCESS_LOG_ADMIN_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const limitNum = Math.min(
+    parseInt(String(req.query.limit || "200"), 10) || 200,
+    500,
+  );
+
+  try {
+    if (firestore) {
+      const snapshot = await firestore
+        .collection("accessLogs")
+        .orderBy("at", "desc")
+        .limit(limitNum)
+        .get();
+      const visits = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      return res.json({ visits, source: "firestore" });
+    }
+    return res.json({ visits: readAccessLogFile(limitNum), source: "file" });
+  } catch (err) {
+    logger.error("Visit all error", err);
+    return res.json({ visits: readAccessLogFile(limitNum), source: "file" });
   }
 });
 

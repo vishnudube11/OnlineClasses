@@ -232,6 +232,36 @@ const COURSES = [
     icon: "shield-checkmark" as const,
     gradient: ["#141e30", "#243b55"] as const,
   },
+  { id: "400", title: "Robotics", icon: "hardware-chip" as const, gradient: ["#ff512f", "#dd2476"] as const },
+  { id: "401", title: "Embedded Systems", icon: "git-network" as const, gradient: ["#0f2027", "#2c5364"] as const },
+  { id: "402", title: "Game Development", icon: "game-controller" as const, gradient: ["#8e44ad", "#6c3483"] as const },
+  { id: "403", title: "IoT", icon: "wifi" as const, gradient: ["#11998e", "#38ef7d"] as const },
+  { id: "404", title: "Arduino", icon: "flash" as const, gradient: ["#00979d", "#007c82"] as const },
+  { id: "405", title: "Raspberry Pi", icon: "hardware-chip" as const, gradient: ["#c51a4a", "#6b2737"] as const },
+  { id: "406", title: "C Programming", icon: "code-slash" as const, gradient: ["#00599c", "#004482"] as const },
+  { id: "407", title: "C++", icon: "code-slash" as const, gradient: ["#00599c", "#004482"] as const },
+  { id: "408", title: "Data Structures and Algorithms", icon: "git-branch" as const, gradient: ["#e67e22", "#ca6f1e"] as const },
+  { id: "409", title: "Android Development", icon: "logo-android" as const, gradient: ["#3ddc84", "#2bb673"] as const },
+  { id: "410", title: "iOS Development", icon: "logo-apple" as const, gradient: ["#555555", "#111111"] as const },
+  { id: "411", title: "Flutter", icon: "phone-portrait" as const, gradient: ["#02569b", "#0175c2"] as const },
+  { id: "412", title: "React", icon: "logo-react" as const, gradient: ["#61dafb", "#21b6e0"] as const },
+  { id: "413", title: "Node.js", icon: "server" as const, gradient: ["#3c873a", "#2b5e2a"] as const },
+  { id: "414", title: "JavaScript", icon: "code-slash" as const, gradient: ["#f7df1e", "#c9b416"] as const },
+  { id: "415", title: "DevOps", icon: "server" as const, gradient: ["#232526", "#414345"] as const },
+  { id: "416", title: "Cloud Computing", icon: "cloud" as const, gradient: ["#3498db", "#2980b9"] as const },
+  { id: "417", title: "AWS", icon: "cloud" as const, gradient: ["#ff9900", "#ec7211"] as const },
+  { id: "418", title: "Docker", icon: "cube" as const, gradient: ["#2496ed", "#1d7fc9"] as const },
+  { id: "419", title: "Kubernetes", icon: "git-network" as const, gradient: ["#326ce5", "#1a4fb8"] as const },
+  { id: "420", title: "Blockchain", icon: "link" as const, gradient: ["#f7931a", "#c46d0c"] as const },
+  { id: "421", title: "Ethical Hacking", icon: "lock-closed" as const, gradient: ["#0f0c29", "#302b63"] as const },
+  { id: "422", title: "SQL", icon: "server" as const, gradient: ["#00758f", "#005e73"] as const },
+  { id: "423", title: "Linux", icon: "desktop" as const, gradient: ["#111111", "#333333"] as const },
+  { id: "424", title: "Computer Networking", icon: "globe" as const, gradient: ["#1a5276", "#154360"] as const },
+  { id: "425", title: "MATLAB", icon: "calculator" as const, gradient: ["#e67e22", "#ca6f1e"] as const },
+  { id: "426", title: "AutoCAD", icon: "construct" as const, gradient: ["#e74c3c", "#c0392b"] as const },
+  { id: "427", title: "PLC and Automation", icon: "settings" as const, gradient: ["#34495e", "#1c2833"] as const },
+  { id: "428", title: "VLSI", icon: "hardware-chip" as const, gradient: ["#8e44ad", "#6c3483"] as const },
+  { id: "429", title: "Unity Game Engine", icon: "game-controller" as const, gradient: ["#222c37", "#000000"] as const },
   {
     id: "17",
     title: "Microsoft Excel",
@@ -269,6 +299,193 @@ const COURSES = [
     gradient: ["#e91e8c", "#c2185b"] as const,
   },
 ];
+
+const COMPETITIVE_EXAMS = [
+  { id: "50", title: "JEE Main", icon: "airplane" as const, gradient: ["#e74c3c", "#c0392b"] as const },
+  { id: "51", title: "JEE Advanced", icon: "flash" as const, gradient: ["#c0392b", "#922b21"] as const },
+  { id: "52", title: "NEET", icon: "fitness" as const, gradient: ["#27ae60", "#1e8449"] as const },
+  { id: "53", title: "CUET", icon: "school" as const, gradient: ["#8e44ad", "#6c3483"] as const },
+  { id: "54", title: "GATE", icon: "cog" as const, gradient: ["#2980b9", "#1a5276"] as const },
+  { id: "55", title: "CAT", icon: "briefcase" as const, gradient: ["#d35400", "#a04000"] as const },
+  { id: "56", title: "UPSC", icon: "library" as const, gradient: ["#1a5276", "#0e2f44"] as const },
+  { id: "57", title: "SSC CGL", icon: "document-text" as const, gradient: ["#16a085", "#0e6655"] as const },
+  { id: "58", title: "SSC CHSL", icon: "document-text" as const, gradient: ["#1abc9c", "#148f77"] as const },
+  { id: "59", title: "Banking (IBPS / SBI)", icon: "card" as const, gradient: ["#2c3e50", "#1a252f"] as const },
+  { id: "60", title: "Railways (RRB)", icon: "bus" as const, gradient: ["#34495e", "#1c2833"] as const },
+  { id: "61", title: "State PSC", icon: "business" as const, gradient: ["#7f8c8d", "#515a5a"] as const },
+  { id: "62", title: "Police", icon: "shield" as const, gradient: ["#1e3c72", "#2a5298"] as const },
+  { id: "63", title: "NDA", icon: "ribbon" as const, gradient: ["#0b3d0b", "#1e8449"] as const },
+  { id: "64", title: "CDS", icon: "flag" as const, gradient: ["#145a32", "#196f3d"] as const },
+  { id: "65", title: "CA Foundation", icon: "calculator" as const, gradient: ["#6c3483", "#4a235a"] as const },
+  { id: "66", title: "CLAT", icon: "hammer" as const, gradient: ["#4a235a", "#1b2631"] as const },
+  { id: "67", title: "CTET", icon: "book" as const, gradient: ["#b9770e", "#7d6608"] as const },
+  { id: "68", title: "UGC NET", icon: "school" as const, gradient: ["#1a5276", "#154360"] as const },
+];
+
+const CLASS_12 = [
+  { id: "70", title: "Class 12 Physics", icon: "planet" as const, gradient: ["#2980b9", "#1f618d"] as const },
+  { id: "71", title: "Class 12 Chemistry", icon: "flask" as const, gradient: ["#8e44ad", "#6c3483"] as const },
+  { id: "72", title: "Class 12 Maths", icon: "calculator" as const, gradient: ["#c0392b", "#922b21"] as const },
+  { id: "73", title: "Class 12 Biology", icon: "leaf" as const, gradient: ["#27ae60", "#196f3d"] as const },
+  { id: "74", title: "Class 12 Computer Science", icon: "desktop" as const, gradient: ["#2c3e50", "#1a252f"] as const },
+  { id: "75", title: "Class 12 English", icon: "chatbubbles" as const, gradient: ["#e67e22", "#ca6f1e"] as const },
+  { id: "76", title: "Class 12 Accountancy", icon: "cash" as const, gradient: ["#16a085", "#0e6655"] as const },
+  { id: "77", title: "Class 12 Business Studies", icon: "briefcase" as const, gradient: ["#d35400", "#a04000"] as const },
+  { id: "78", title: "Class 12 Economics", icon: "trending-up" as const, gradient: ["#1abc9c", "#148f77"] as const },
+  { id: "79", title: "Class 12 History", icon: "time" as const, gradient: ["#7f8c8d", "#515a5a"] as const },
+  { id: "80", title: "Class 12 Political Science", icon: "people" as const, gradient: ["#1a5276", "#154360"] as const },
+  { id: "81", title: "Class 12 Geography", icon: "globe" as const, gradient: ["#1e8449", "#145a32"] as const },
+  { id: "82", title: "Class 12 Sociology", icon: "people-circle" as const, gradient: ["#6c3483", "#4a235a"] as const },
+  { id: "83", title: "Class 12 Psychology", icon: "heart" as const, gradient: ["#c0392b", "#7b241c"] as const },
+  { id: "84", title: "Class 12 Hindi", icon: "globe" as const, gradient: ["#f39c12", "#b9770e"] as const },
+];
+
+const MIDDLE_SUBJECTS = [
+  { subject: "Maths", icon: "calculator" as const, gradient: ["#c0392b", "#922b21"] as const },
+  { subject: "Science", icon: "flask" as const, gradient: ["#2980b9", "#1f618d"] as const },
+  { subject: "Social Science", icon: "map" as const, gradient: ["#27ae60", "#196f3d"] as const },
+  { subject: "English", icon: "chatbubbles" as const, gradient: ["#e67e22", "#ca6f1e"] as const },
+  { subject: "Hindi", icon: "globe" as const, gradient: ["#f39c12", "#b9770e"] as const },
+  { subject: "Sanskrit", icon: "book" as const, gradient: ["#8e44ad", "#6c3483"] as const },
+  { subject: "Computer / IT", icon: "desktop" as const, gradient: ["#2c3e50", "#1a252f"] as const },
+];
+
+const PRIMARY_SUBJECTS = [
+  { subject: "Maths", icon: "calculator" as const, gradient: ["#c0392b", "#922b21"] as const },
+  { subject: "English", icon: "chatbubbles" as const, gradient: ["#e67e22", "#ca6f1e"] as const },
+  { subject: "Hindi", icon: "globe" as const, gradient: ["#f39c12", "#b9770e"] as const },
+  { subject: "EVS", icon: "leaf" as const, gradient: ["#27ae60", "#196f3d"] as const },
+  { subject: "Computer / IT", icon: "desktop" as const, gradient: ["#2c3e50", "#1a252f"] as const },
+];
+
+function tilesForClass(
+  classNum: number,
+  startId: number,
+  subjects: { subject: string; icon: any; gradient: readonly [string, string] }[],
+) {
+  return subjects.map((s, i) => ({
+    id: String(startId + i),
+    title: `Class ${classNum} ${s.subject}`,
+    icon: s.icon,
+    gradient: s.gradient,
+  }));
+}
+
+const CLASS_11 = CLASS_12.map((course, i) => ({
+  ...course,
+  id: String(200 + i),
+  title: course.title.replace("Class 12", "Class 11"),
+}));
+
+const CLASS_10 = tilesForClass(10, 85, MIDDLE_SUBJECTS);
+const CLASS_9 = tilesForClass(9, 220, MIDDLE_SUBJECTS);
+const CLASS_8 = tilesForClass(8, 230, MIDDLE_SUBJECTS);
+const CLASS_7 = tilesForClass(7, 240, MIDDLE_SUBJECTS);
+const CLASS_6 = tilesForClass(6, 250, MIDDLE_SUBJECTS);
+const CLASS_5 = tilesForClass(5, 260, PRIMARY_SUBJECTS);
+const CLASS_4 = tilesForClass(4, 270, PRIMARY_SUBJECTS);
+const CLASS_3 = tilesForClass(3, 280, PRIMARY_SUBJECTS);
+const CLASS_2 = tilesForClass(2, 290, PRIMARY_SUBJECTS);
+const CLASS_1 = tilesForClass(1, 300, PRIMARY_SUBJECTS);
+
+const SCHOOL_SECTIONS = [
+  { title: "Class 12", subtitle: "Science, commerce, and arts subjects", courses: CLASS_12 },
+  { title: "Class 11", subtitle: "Science, commerce, and arts subjects", courses: CLASS_11 },
+  { title: "Class 10", subtitle: "Board exam subjects", courses: CLASS_10 },
+  { title: "Class 9", subtitle: "Maths, science, SST, languages, and computer", courses: CLASS_9 },
+  { title: "Class 8", subtitle: "Maths, science, SST, languages, and computer", courses: CLASS_8 },
+  { title: "Class 7", subtitle: "Maths, science, SST, languages, and computer", courses: CLASS_7 },
+  { title: "Class 6", subtitle: "Maths, science, SST, languages, and computer", courses: CLASS_6 },
+  { title: "Class 5", subtitle: "Maths, English, Hindi, EVS, and computer", courses: CLASS_5 },
+  { title: "Class 4", subtitle: "Maths, English, Hindi, EVS, and computer", courses: CLASS_4 },
+  { title: "Class 3", subtitle: "Maths, English, Hindi, EVS, and computer", courses: CLASS_3 },
+  { title: "Class 2", subtitle: "Maths, English, Hindi, EVS, and computer", courses: CLASS_2 },
+  { title: "Class 1", subtitle: "Maths, English, Hindi, EVS, and computer", courses: CLASS_1 },
+];
+
+const KIDS = [
+  { id: "100", title: "Nursery Rhymes for Kids", icon: "musical-notes" as const, gradient: ["#ff6b9d", "#c44569"] as const },
+  { id: "101", title: "ABCs and Phonics for Kids", icon: "text" as const, gradient: ["#f7971e", "#ffd200"] as const },
+  { id: "102", title: "Numbers and Counting for Kids", icon: "calculator" as const, gradient: ["#36d1dc", "#5b86e5"] as const },
+  { id: "103", title: "Moral Stories for Kids", icon: "book" as const, gradient: ["#a18cd1", "#fbc2eb"] as const },
+  { id: "104", title: "Science Experiments for Kids", icon: "flask" as const, gradient: ["#11998e", "#38ef7d"] as const },
+  { id: "105", title: "Maths for Kids", icon: "grid" as const, gradient: ["#667eea", "#764ba2"] as const },
+  { id: "106", title: "English for Kids", icon: "chatbubbles" as const, gradient: ["#f7971e", "#ff6a00"] as const },
+  { id: "107", title: "Hindi Rhymes for Kids", icon: "globe" as const, gradient: ["#ee0979", "#ff6a00"] as const },
+  { id: "108", title: "Drawing for Kids", icon: "brush" as const, gradient: ["#00c6ff", "#0072ff"] as const },
+  { id: "109", title: "Animals for Kids", icon: "paw" as const, gradient: ["#56ab2f", "#a8e063"] as const },
+  { id: "110", title: "Colors and Shapes for Kids", icon: "color-palette" as const, gradient: ["#ff512f", "#dd2476"] as const },
+  { id: "111", title: "GK for Kids", icon: "sparkles" as const, gradient: ["#7f00ff", "#e100ff"] as const },
+  { id: "112", title: "Times Tables for Kids", icon: "apps" as const, gradient: ["#2193b0", "#6dd5ed"] as const },
+];
+
+const ALL_COURSES = [
+  ...COURSES,
+  ...KIDS,
+  ...COMPETITIVE_EXAMS,
+  ...SCHOOL_SECTIONS.flatMap((section) => section.courses),
+];
+
+type HomeCourse = (typeof ALL_COURSES)[number];
+
+function sortByTitle<T extends { title: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) =>
+    a.title.localeCompare(b.title, "en", { numeric: true, sensitivity: "base" }),
+  );
+}
+
+function CourseTileGrid({
+  courses,
+  cardWidth,
+  onSelect,
+}: {
+  courses: HomeCourse[];
+  cardWidth: string;
+  onSelect: (title: string) => void;
+}) {
+  const sortedCourses = sortByTitle(courses);
+  return (
+    <View style={styles.grid}>
+      {sortedCourses.map((course) => (
+        <Pressable
+          key={course.id}
+          style={({ pressed }) => [
+            styles.courseCard,
+            {
+              width: cardWidth as any,
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.97 : 1 }],
+            },
+          ]}
+          onPress={() => onSelect(course.title)}
+        >
+          <LinearGradient
+            colors={course.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardGradient}
+          >
+            <View style={styles.cardIconContainer}>
+              <Ionicons
+                name={course.icon}
+                size={28}
+                color="rgba(255,255,255,0.9)"
+              />
+            </View>
+            <Text style={styles.cardTitle}>{course.title}</Text>
+            <View style={styles.cardArrow}>
+              <Ionicons
+                name="arrow-forward"
+                size={14}
+                color="rgba(255,255,255,0.7)"
+              />
+            </View>
+          </LinearGradient>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 export default function CourseSelectionScreen() {
   const router = useRouter();
@@ -358,7 +575,7 @@ export default function CourseSelectionScreen() {
   const handleSearch = () => {
     if (searchQuery.trim()) {
       const trimmedQuery = searchQuery.trim();
-      const matchedCourse = COURSES.find(
+      const matchedCourse = ALL_COURSES.find(
         (course) => course.title.toLowerCase() === trimmedQuery.toLowerCase(),
       );
 
@@ -383,8 +600,10 @@ export default function CourseSelectionScreen() {
     router.push((paymentsEnabled ? `/pay/${q}` : `/course/${q}`) as any);
   };
 
-  const filteredCourses = COURSES.filter((course) =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filteredCourses = sortByTitle(
+    ALL_COURSES.filter((course) =>
+      course.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    ),
   );
 
   const handleSearchChange = (text: string) => {
@@ -397,8 +616,8 @@ export default function CourseSelectionScreen() {
   return (
     <View style={[{ flex: 1 }, { backgroundColor: theme.background }]}>
       <SeoHead
-        title="OnlineClasses | Learn Java, AI, Python in Your Language"
-        description="Browse popular video courses in Java, Python, AI, ML, and more. Watch tutorials in English, Hindi, Tamil, Telugu, and other languages."
+        title="OnlineClasses | JEE, NEET, Class 10 & 12, Java, AI"
+        description="Browse video courses for kids, JEE, NEET, UPSC, Class 10, Class 12, Java, Python, AI, and more. Watch tutorials in English, Hindi, Tamil, Telugu, and other languages."
         path="/"
       />
       {/* Custom Alert Modal */}
@@ -543,7 +762,7 @@ export default function CourseSelectionScreen() {
                   keyboardShouldPersistTaps="always"
                   nestedScrollEnabled
                 >
-                  {filteredCourses.slice(0, 5).map((course) => (
+                  {filteredCourses.slice(0, 8).map((course) => (
                     <Pressable
                       key={course.id}
                       style={({ pressed }) => [
@@ -584,46 +803,62 @@ export default function CourseSelectionScreen() {
           >
             {t("courses.subtitle")}
           </Text>
-          <View style={styles.grid}>
-            {COURSES.map((course) => (
-              <Pressable
-                key={course.id}
-                style={({ pressed }) => [
-                  styles.courseCard,
-                  {
-                    width: cardWidth as any,
-                    opacity: pressed ? 0.85 : 1,
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
-                  },
-                ]}
-                onPress={() => handleCourseSelect(course.title)}
-              >
-                <LinearGradient
-                  colors={course.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.cardGradient}
-                >
-                  <View style={styles.cardIconContainer}>
-                    <Ionicons
-                      name={course.icon}
-                      size={28}
-                      color="rgba(255,255,255,0.9)"
-                    />
-                  </View>
-                  <Text style={styles.cardTitle}>{course.title}</Text>
-                  <View style={styles.cardArrow}>
-                    <Ionicons
-                      name="arrow-forward"
-                      size={14}
-                      color="rgba(255,255,255,0.7)"
-                    />
-                  </View>
-                </LinearGradient>
-              </Pressable>
-            ))}
-          </View>
+          <CourseTileGrid
+            courses={COURSES}
+            cardWidth={cardWidth}
+            onSelect={handleCourseSelect}
+          />
         </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Kids
+          </Text>
+          <Text
+            style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}
+          >
+            Fun educational videos — rhymes, stories, maths, science, and more
+          </Text>
+          <CourseTileGrid
+            courses={KIDS}
+            cardWidth={cardWidth}
+            onSelect={handleCourseSelect}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Competitive Exams
+          </Text>
+          <Text
+            style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}
+          >
+            JEE, NEET, UPSC, SSC, banking, and more
+          </Text>
+          <CourseTileGrid
+            courses={COMPETITIVE_EXAMS}
+            cardWidth={cardWidth}
+            onSelect={handleCourseSelect}
+          />
+        </View>
+
+        {SCHOOL_SECTIONS.map((section) => (
+          <View key={section.title} style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              {section.title}
+            </Text>
+            <Text
+              style={[styles.sectionSubtitle, { color: theme.tabIconDefault }]}
+            >
+              {section.subtitle}
+            </Text>
+            <CourseTileGrid
+              courses={section.courses}
+              cardWidth={cardWidth}
+              onSelect={handleCourseSelect}
+            />
+          </View>
+        ))}
       </Animated.ScrollView>
     </View>
   );

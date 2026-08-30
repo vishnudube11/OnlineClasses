@@ -4,13 +4,14 @@ import {
     ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useGlobalSearchParams, usePathname, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider, useAuth } from "@/src/context/AuthContext";
+import { logAccess } from "@/src/accessLog";
 import { i18n, loadSavedLanguage } from "@/src/i18n";
 import { DEFAULT_TITLE, SITE_NAME } from "@/src/seo/config";
 import { I18nextProvider } from "react-i18next";
@@ -95,6 +96,22 @@ function ProtectedLayout() {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useGlobalSearchParams<{ category?: string; id?: string }>();
+
+  useEffect(() => {
+    if (isLoading) return;
+    logAccess({
+      screen: pathname || "/",
+      action: "view",
+      userName: user?.name,
+      userEmail: user?.email,
+      details: {
+        category: params.category || undefined,
+        id: params.id || undefined,
+      },
+    });
+  }, [isLoading, pathname, params.category, params.id, user?.email, user?.name]);
 
   useEffect(() => {
     if (isLoading) return;
