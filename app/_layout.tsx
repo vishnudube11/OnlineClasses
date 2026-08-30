@@ -7,6 +7,7 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider, useAuth } from "@/src/context/AuthContext";
@@ -26,6 +27,14 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+function keepBrowserTitle() {
+  if (typeof document === "undefined") return;
+  const current = (document.title || "").trim();
+  if (!current || current === "Untitled") {
+    document.title = DEFAULT_TITLE;
+  }
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -48,6 +57,18 @@ export default function RootLayout() {
     };
     initializeApp();
   }, [loaded]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    keepBrowserTitle();
+    const observer = new MutationObserver(keepBrowserTitle);
+    observer.observe(document.head, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+    return () => observer.disconnect();
+  }, []);
 
   if (!loaded || !i18nInitialized) {
     return null;
@@ -94,6 +115,11 @@ function ProtectedLayout() {
       screenOptions={{
         headerShown: false,
         title: SITE_NAME,
+        documentTitle: {
+          enabled: true,
+          formatter: (options: { title?: string } | undefined) =>
+            options?.title?.trim() || DEFAULT_TITLE,
+        },
       }}
     >
       <Stack.Screen

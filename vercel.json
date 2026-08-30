@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export -p web && cp -f public/googlea072d3ba78b95283.html public/robots.txt public/sitemap.xml dist/",
+  "buildCommand": "npx expo export -p web && cp -f public/googlea072d3ba78b95283.html public/robots.txt public/sitemap.xml dist/ && node scripts/fix-seo-html.js",
   "outputDirectory": "dist",
   "cleanUrls": false,
   "headers": [

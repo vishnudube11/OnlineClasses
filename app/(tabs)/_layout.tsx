@@ -33,6 +33,11 @@ export default function TabLayout() {
           },
           headerShown: false,
           title: SITE_NAME,
+          documentTitle: {
+            enabled: true,
+            formatter: (options: { title?: string } | undefined) =>
+              options?.title?.trim() || DEFAULT_TITLE,
+          },
         }}
       >
         <Tabs.Screen
