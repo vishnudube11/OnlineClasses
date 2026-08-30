@@ -7,6 +7,7 @@ import {
     Video,
 } from "@/src/api/youtube";
 import VideoCard from "@/src/components/VideoCard";
+import { logAccess } from "@/src/accessLog";
 import { withContentLanguage } from "@/src/i18n/contentLanguage";
 import {
     getLastPositionSec,
@@ -179,6 +180,16 @@ export default function VideoScreen() {
     if (data && type !== "playlist") {
       try {
         await upsertVisitedVideo({ video: data, category });
+        logAccess({
+          screen: "video",
+          action: "watch",
+          details: {
+            videoId: data.id,
+            title: data.title,
+            category: category || undefined,
+            channelTitle: data.channelTitle,
+          },
+        });
         const last = await getLastPositionSec(data.id);
         setResumeSec(typeof last === "number" ? last : null);
       } catch {
