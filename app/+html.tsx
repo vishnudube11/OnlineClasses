@@ -34,11 +34,6 @@ export default function Root({ children }: { children: React.ReactNode }) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `document.title=${JSON.stringify(DEFAULT_TITLE)};`,
-          }}
-        />
         <meta name="description" content={SITE_DESCRIPTION} />
         <meta name="keywords" content={SITE_KEYWORDS} />
         <meta name="author" content={SITE_NAME} />

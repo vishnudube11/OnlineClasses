@@ -1,4 +1,5 @@
 import { useAuth } from "@/src/context/AuthContext";
+import { DEFAULT_TITLE } from "@/src/seo/config";
 import SeoHead from "@/src/seo/SeoHead";
 import { Ionicons } from "@expo/vector-icons";
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
@@ -54,9 +55,10 @@ export default function LoginScreen() {
   return (
     <>
       <SeoHead
-        title="Login | OnlineClasses"
+        title={DEFAULT_TITLE}
         description="Sign in to OnlineClasses with Google or mobile OTP and start learning video courses in your language."
         path="/login"
+        noIndex
       />
     <LinearGradient
       colors={["#0a0a0a", "#111827", "#0f1a2e"]}
