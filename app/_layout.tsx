@@ -104,6 +104,7 @@ function ProtectedLayout() {
     logAccess({
       screen: pathname || "/",
       action: "view",
+      userId: user?.uid,
       userName: user?.name,
       userEmail: user?.email,
       details: {
@@ -111,7 +112,7 @@ function ProtectedLayout() {
         id: params.id || undefined,
       },
     });
-  }, [isLoading, pathname, params.category, params.id, user?.email, user?.name]);
+  }, [isLoading, pathname, params.category, params.id, user?.uid, user?.email, user?.name]);
 
   useEffect(() => {
     if (isLoading) return;

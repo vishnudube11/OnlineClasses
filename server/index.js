@@ -1223,8 +1223,18 @@ app.post("/api/visits/log", visitorsLimiter, async (req, res) => {
       "";
 
     const entry = {
-      userId: user?.uid || null,
-      userEmail: clipText(user?.email || userEmail || "", 120) || null,
+      userId:
+        user?.uid ||
+        clipText(typeof req.body?.userId === "string" ? req.body.userId : "", 80) ||
+        null,
+      userEmail:
+        clipText(
+          user?.email ||
+            user?.phone_number ||
+            userEmail ||
+            "",
+          120,
+        ) || null,
       userName: clipText(user?.name || userName || "", 80) || null,
       guestId: clipText(typeof guestId === "string" ? guestId : "", 80) || null,
       screen: clipText(screen, 160),

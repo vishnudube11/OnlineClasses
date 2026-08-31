@@ -34,32 +34,54 @@ export type AccessLogInput = {
   screen: string;
   action?: string;
   details?: Record<string, unknown>;
+  userId?: string | null;
   userName?: string | null;
   userEmail?: string | null;
+};
+
+const waitForAuth = async () => {
+  try {
+    if (typeof auth.authStateReady === "function") {
+      await auth.authStateReady();
+    }
+  } catch {
+    // Continue with whatever auth state is available.
+  }
 };
 
 export const logAccess = async ({
   screen,
   action = "view",
   details = {},
+  userId,
   userName,
   userEmail,
 }: AccessLogInput) => {
-  const key = `${screen}|${action}|${JSON.stringify(details)}`;
-  const now = Date.now();
-  if (key === lastLogKey && now - lastLogAt < 2000) return;
-  lastLogKey = key;
-  lastLogAt = now;
-
   const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (!baseUrl || !screen) return;
 
   try {
+    await waitForAuth();
+    const currentUser = auth.currentUser;
+    const resolvedUserId = userId || currentUser?.uid || null;
+    const resolvedEmail =
+      userEmail ||
+      currentUser?.email ||
+      currentUser?.phoneNumber ||
+      null;
+    const resolvedName =
+      userName || currentUser?.displayName || null;
+
+    const key = `${screen}|${action}|${resolvedUserId || "guest"}|${JSON.stringify(details)}`;
+    const now = Date.now();
+    if (key === lastLogKey && now - lastLogAt < 2000) return;
+    lastLogKey = key;
+    lastLogAt = now;
+
     const guestId = await getGuestId();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    const currentUser = auth.currentUser;
     if (currentUser) {
       headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
     }
@@ -71,8 +93,9 @@ export const logAccess = async ({
         action,
         details,
         guestId,
-        userName: userName || currentUser?.displayName || null,
-        userEmail: userEmail || currentUser?.email || currentUser?.phoneNumber || null,
+        userId: resolvedUserId,
+        userName: resolvedName,
+        userEmail: resolvedEmail,
       },
       { headers, timeout: 8000 },
     );
