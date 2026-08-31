@@ -23,6 +23,7 @@ import React, {
 WebBrowser.maybeCompleteAuthSession();
 
 type User = {
+  uid: string;
   name: string;
   email: string;
   avatar: string;
@@ -88,8 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
       setUser({
+        uid: fbUser.uid,
         name: fbUser.displayName || "Student",
-        email: fbUser.email || "",
+        email:
+          fbUser.email ||
+          fbUser.phoneNumber ||
+          "",
         avatar:
           fbUser.photoURL ||
           "https://ui-avatars.com/api/?name=" +
