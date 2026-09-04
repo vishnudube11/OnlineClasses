@@ -65,12 +65,17 @@ export const logAccess = async ({
     const currentUser = auth.currentUser;
     const resolvedUserId = userId || currentUser?.uid || null;
     const resolvedEmail =
-      userEmail ||
+      (userEmail && String(userEmail).trim()) ||
       currentUser?.email ||
       currentUser?.phoneNumber ||
       null;
+    const isGuest = !resolvedUserId;
     const resolvedName =
-      userName || currentUser?.displayName || null;
+      (userName && String(userName).trim() && userName !== "Student"
+        ? userName
+        : null) ||
+      currentUser?.displayName ||
+      (isGuest ? "Guest" : "Student");
 
     const key = `${screen}|${action}|${resolvedUserId || "guest"}|${JSON.stringify(details)}`;
     const now = Date.now();
@@ -96,6 +101,7 @@ export const logAccess = async ({
         userId: resolvedUserId,
         userName: resolvedName,
         userEmail: resolvedEmail,
+        isGuest,
       },
       { headers, timeout: 8000 },
     );
