@@ -1208,7 +1208,7 @@ app.post("/api/payments/mark-paid", async (req, res) => {
 app.post("/api/visits/log", visitorsLimiter, async (req, res) => {
   try {
     const user = await tryFirebaseUser(req);
-    const { screen, action, details, guestId, userName, userEmail } =
+    const { screen, action, details, guestId, userName, userEmail, isGuest } =
       req.body || {};
 
     if (!screen || typeof screen !== "string") {
@@ -1235,7 +1235,10 @@ app.post("/api/visits/log", visitorsLimiter, async (req, res) => {
             "",
           120,
         ) || null,
-      userName: clipText(user?.name || userName || "", 80) || null,
+      userName:
+        clipText(user?.name || userName || "", 80) ||
+        (user?.uid || req.body?.userId ? "Student" : "Guest"),
+      isGuest: Boolean(isGuest) || !(user?.uid || req.body?.userId),
       guestId: clipText(typeof guestId === "string" ? guestId : "", 80) || null,
       screen: clipText(screen, 160),
       action: clipText(typeof action === "string" ? action : "view", 40),
