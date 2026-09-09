@@ -70,14 +70,16 @@ export const logAccess = async ({
       currentUser?.phoneNumber ||
       null;
     const isGuest = !resolvedUserId;
+    if (isGuest) return;
+
     const resolvedName =
       (userName && String(userName).trim() && userName !== "Student"
         ? userName
         : null) ||
       currentUser?.displayName ||
-      (isGuest ? "Guest" : "Student");
+      "Student";
 
-    const key = `${screen}|${action}|${resolvedUserId || "guest"}|${JSON.stringify(details)}`;
+    const key = `${screen}|${action}|${resolvedUserId}|${JSON.stringify(details)}`;
     const now = Date.now();
     if (key === lastLogKey && now - lastLogAt < 2000) return;
     lastLogKey = key;
@@ -101,7 +103,6 @@ export const logAccess = async ({
         userId: resolvedUserId,
         userName: resolvedName,
         userEmail: resolvedEmail,
-        isGuest,
       },
       { headers, timeout: 8000 },
     );
