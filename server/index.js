@@ -1215,6 +1215,15 @@ app.post("/api/visits/log", visitorsLimiter, async (req, res) => {
       return res.status(400).json({ error: "screen is required" });
     }
 
+    const resolvedUserId =
+      user?.uid ||
+      clipText(typeof req.body?.userId === "string" ? req.body.userId : "", 80) ||
+      "";
+
+    if (isGuest === true || !resolvedUserId) {
+      return res.json({ ok: true, skipped: true });
+    }
+
     const ip =
       String(req.headers["x-forwarded-for"] || "")
         .split(",")[0]
@@ -1223,10 +1232,7 @@ app.post("/api/visits/log", visitorsLimiter, async (req, res) => {
       "";
 
     const entry = {
-      userId:
-        user?.uid ||
-        clipText(typeof req.body?.userId === "string" ? req.body.userId : "", 80) ||
-        null,
+      userId: resolvedUserId,
       userEmail:
         clipText(
           user?.email ||
@@ -1235,10 +1241,8 @@ app.post("/api/visits/log", visitorsLimiter, async (req, res) => {
             "",
           120,
         ) || null,
-      userName:
-        clipText(user?.name || userName || "", 80) ||
-        (user?.uid || req.body?.userId ? "Student" : "Guest"),
-      isGuest: Boolean(isGuest) || !(user?.uid || req.body?.userId),
+      userName: clipText(user?.name || userName || "", 80) || "Student",
+      isGuest: false,
       guestId: clipText(typeof guestId === "string" ? guestId : "", 80) || null,
       screen: clipText(screen, 160),
       action: clipText(typeof action === "string" ? action : "view", 40),

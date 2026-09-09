@@ -4,6 +4,15 @@
   "cleanUrls": false,
   "headers": [
     {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        }
+      ]
+    },
+    {
       "source": "/googlea072d3ba78b95283.html",
       "headers": [
         {
