@@ -118,10 +118,8 @@ function ProtectedLayout() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "login";
-    const isPublicPage =
-      inAuthGroup || segments[0] === "(tabs)" || segments[0] === "course";
 
-    if (!user && !isPublicPage) {
+    if (!user && !inAuthGroup) {
       router.replace("/login");
     } else if (user && inAuthGroup) {
       // Redirect away from the login page.
