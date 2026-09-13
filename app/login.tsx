@@ -31,6 +31,7 @@ export default function LoginScreen() {
 
   const [phone, setPhone] = React.useState("+");
   const [otp, setOtp] = React.useState("");
+  const [loginError, setLoginError] = React.useState("");
   const recaptchaRef = React.useRef<FirebaseRecaptchaVerifierModal>(null);
 
   // Animated entrance
@@ -103,7 +104,21 @@ export default function LoginScreen() {
             styles.googleButton,
             pressed && styles.buttonPressed,
           ]}
-          onPress={loginWithGoogle}
+          onPress={async () => {
+            setLoginError("");
+            try {
+              await loginWithGoogle();
+            } catch (error: any) {
+              const code = String(error?.code || "");
+              if (code === "auth/unauthorized-domain") {
+                setLoginError(
+                  "This website domain is not allowed in Firebase Auth. Add www.online-classes.in in Firebase Console → Authentication → Settings → Authorized domains.",
+                );
+                return;
+              }
+              setLoginError(error?.message || "Google sign-in failed. Try again.");
+            }
+          }}
           disabled={isLoading}
         >
           {({ pressed }) => (
@@ -126,6 +141,10 @@ export default function LoginScreen() {
             </LinearGradient>
           )}
         </Pressable>
+
+        {loginError ? (
+          <Text style={styles.errorText}>{loginError}</Text>
+        ) : null}
 
         <FirebaseRecaptchaVerifierModal
           ref={recaptchaRef}
@@ -375,6 +394,13 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.3)",
     fontSize: 12,
     textAlign: "center",
+    lineHeight: 18,
+  },
+  errorText: {
+    color: "#fca5a5",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 12,
     lineHeight: 18,
   },
 });
