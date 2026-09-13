@@ -4,11 +4,14 @@ import * as Google from "expo-auth-session/providers/google";
 import type { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import * as WebBrowser from "expo-web-browser";
 import {
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   PhoneAuthProvider,
   signInWithCredential,
   signInWithPhoneNumber,
+  signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";
@@ -117,6 +120,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== "web") return;
+    getRedirectResult(auth).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const idToken =
       response?.type === "success" ? response.params?.id_token : undefined;
     if (!idToken) return;
@@ -135,27 +143,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [response]);
 
   const loginWithGoogle = async () => {
+    if (Platform.OS === "web") {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      setIsLoading(true);
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error: any) {
+        if (error?.code === "auth/popup-blocked") {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        if (
+          error?.code === "auth/popup-closed-by-user" ||
+          error?.code === "auth/cancelled-popup-request"
+        ) {
+          return;
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (!googleClientIds.webClientId && !googleClientIds.androidClientId) {
       throw new Error("Missing Google client IDs in env");
     }
     if (!request) {
       throw new Error("Google auth request not ready");
     }
-
-    const result = await promptAsync();
-    if (Platform.OS === "web" && result?.type === "success") {
-      const idToken = result.params?.id_token;
-      if (!idToken) {
-        throw new Error("Google sign-in did not return an ID token");
-      }
-      setIsLoading(true);
-      try {
-        const credential = GoogleAuthProvider.credential(idToken);
-        await signInWithCredential(auth, credential);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+    await promptAsync();
   };
 
   const sendOtp = async (
