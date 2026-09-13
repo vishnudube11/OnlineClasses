@@ -19,6 +19,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { SITE_URL } from "@/src/seo/config";
 import { Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -74,10 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
-  const redirectUri = useMemo(
-    () => makeRedirectUri({ path: Platform.OS === "web" ? "login" : "auth" }),
-    [],
-  );
+  const redirectUri = useMemo(() => {
+    if (Platform.OS === "web") {
+      return `${SITE_URL}/login`;
+    }
+    return makeRedirectUri({ path: "auth", scheme: "onlineclasses" });
+  }, []);
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: googleClientIds.webClientId,
