@@ -117,13 +117,13 @@ function ProtectedLayout() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "login";
+    const route = segments[0];
+    const isAuthRoute = route === "login" || route === "auth";
 
-    if (!user && !inAuthGroup) {
+    if (!user && !isAuthRoute) {
       router.replace("/login");
-    } else if (user && inAuthGroup) {
-      // Redirect away from the login page.
-      router.replace("/(tabs)");
+    } else if (user && (isAuthRoute || route === "+not-found")) {
+      router.replace("/");
     }
   }, [user, isLoading, segments]);
 
@@ -139,6 +139,10 @@ function ProtectedLayout() {
         },
       }}
     >
+      <Stack.Screen
+        name="auth"
+        options={{ headerShown: false, title: DEFAULT_TITLE }}
+      />
       <Stack.Screen
         name="login"
         options={{ headerShown: false, title: DEFAULT_TITLE }}
