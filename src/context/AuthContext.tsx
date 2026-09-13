@@ -151,6 +151,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (error?.code === "auth/popup-closed-by-user") {
           return;
         }
+        if (error?.code === "auth/unauthorized-domain") {
+          throw error;
+        }
         throw error;
       } finally {
         setIsLoading(false);
