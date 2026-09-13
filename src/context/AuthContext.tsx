@@ -74,7 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
-  const redirectUri = useMemo(() => makeRedirectUri({ path: "auth" }), []);
+  const redirectUri = useMemo(
+    () => makeRedirectUri({ path: Platform.OS === "web" ? "login" : "auth" }),
+    [],
+  );
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: googleClientIds.webClientId,
