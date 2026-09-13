@@ -112,7 +112,7 @@ export default function LoginScreen() {
               const code = String(error?.code || "");
               if (code === "auth/unauthorized-domain") {
                 setLoginError(
-                  "This website domain is not allowed in Firebase Auth. Add www.online-classes.in in Firebase Console → Authentication → Settings → Authorized domains.",
+                  "Google sign-in failed. Add both www.online-classes.in and online-classes.in in Firebase Authorized domains, and in Google Cloud OAuth Authorized JavaScript origins. Then try again.",
                 );
                 return;
               }
