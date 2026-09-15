@@ -112,11 +112,14 @@ export default function LoginScreen() {
               const code = String(error?.code || "");
               if (code === "auth/unauthorized-domain") {
                 setLoginError(
-                  "Google sign-in failed. Add both www.online-classes.in and online-classes.in in Firebase Authorized domains, and in Google Cloud OAuth Authorized JavaScript origins. Then try again.",
+                  "Google window did not open because this domain is blocked in Firebase. That is separate from Google Cloud. Add www.online-classes.in in Firebase → Authentication → Settings → Authorized domains.",
                 );
                 return;
               }
-              setLoginError(error?.message || "Google sign-in failed. Try again.");
+              setLoginError(
+                error?.message ||
+                  "Google sign-in failed. In Google Cloud, add https://www.online-classes.in/ as an Authorized redirect URI on the Web client.",
+              );
             }
           }}
           disabled={isLoading}
