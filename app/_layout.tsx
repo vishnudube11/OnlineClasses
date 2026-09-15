@@ -4,7 +4,7 @@ import {
     ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack, useGlobalSearchParams, usePathname, useRouter, useSegments } from "expo-router";
+import { Stack, useGlobalSearchParams, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
@@ -28,6 +28,13 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+function isGoogleCallbackUrl() {
+  if (typeof window === "undefined") return false;
+  const query = window.location.search || "";
+  const hash = window.location.hash || "";
+  return /[?&#](id_token|access_token|code)=/.test(`${query}${hash}`);
+}
 
 function keepBrowserTitle() {
   if (typeof document === "undefined") return;
@@ -94,7 +101,6 @@ function RootLayoutNav() {
 
 function ProtectedLayout() {
   const { user, isLoading } = useAuth();
-  const segments = useSegments();
   const router = useRouter();
   const pathname = usePathname();
   const params = useGlobalSearchParams<{ category?: string; id?: string }>();
@@ -117,20 +123,20 @@ function ProtectedLayout() {
   useEffect(() => {
     if (isLoading) return;
 
-    const route = segments[0];
-    const isAuthRoute = route === "login" || route === "auth";
-    const waitingForGoogle =
-      typeof window !== "undefined" &&
-      /[?&#](id_token|access_token|code|state)=/.test(
-        `${window.location.search}${window.location.hash}`,
-      );
+    const onLogin = pathname === "/login" || pathname === "/auth";
+    const waitingForGoogle = isGoogleCallbackUrl();
 
-    if (!user && !isAuthRoute && !waitingForGoogle) {
-      router.replace("/login");
-    } else if (user && (isAuthRoute || route === "+not-found")) {
-      router.replace("/");
+    if (user) {
+      if (onLogin || pathname === "/+not-found") {
+        router.replace("/");
+      }
+      return;
     }
-  }, [user, isLoading, segments]);
+
+    if (!onLogin && !waitingForGoogle) {
+      router.replace("/login");
+    }
+  }, [user, isLoading, pathname, router]);
 
   return (
     <Stack

@@ -24,6 +24,30 @@ import { Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
+function clearGoogleCallbackUrl() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  [
+    "code",
+    "state",
+    "scope",
+    "authuser",
+    "prompt",
+    "session_state",
+    "iss",
+    "error",
+    "error_description",
+  ].forEach((key) => url.searchParams.delete(key));
+  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
+  if (
+    /(^|[&#])(id_token|access_token|code|state|error)=/.test(hash)
+  ) {
+    url.hash = "";
+  }
+  const next = `${url.pathname}${url.search}${url.hash}` || "/";
+  window.history.replaceState(window.history.state, "", next);
+}
+
 type User = {
   uid: string;
   name: string;
@@ -88,6 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     redirectUri,
   });
 
+  const handledGoogleToken = React.useRef<string | null>(null);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (fbUser: FirebaseUser | null) => {
       if (!fbUser) {
@@ -108,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             encodeURIComponent(fbUser.displayName || "Student") +
             "&background=random",
       });
+      clearGoogleCallbackUrl();
       setIsLoading(false);
     });
 
@@ -119,19 +146,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const idToken =
       response?.type === "success" ? response.params?.id_token : undefined;
-    if (!idToken) return;
+    if (!idToken || handledGoogleToken.current === idToken) return;
+    handledGoogleToken.current = idToken;
 
     const run = async () => {
       setIsLoading(true);
       try {
         const credential = GoogleAuthProvider.credential(idToken);
         await signInWithCredential(auth, credential);
-      } finally {
+        clearGoogleCallbackUrl();
+      } catch {
+        handledGoogleToken.current = null;
         setIsLoading(false);
       }
     };
 
-    run();
+    void run();
   }, [response]);
 
   const loginWithGoogle = async () => {
@@ -142,22 +172,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       throw new Error("Google sign-in is not ready. Refresh the page and try again.");
     }
 
+    setIsLoading(true);
     const result = await promptAsync();
     if (!result || result.type === "cancel" || result.type === "dismiss") {
+      setIsLoading(false);
       return;
     }
     if (result.type === "error") {
+      setIsLoading(false);
       throw new Error(result.error?.message || "Google sign-in failed");
     }
-    if (result.type === "success" && result.params?.id_token) {
-      setIsLoading(true);
-      try {
-        const credential = GoogleAuthProvider.credential(result.params.id_token);
-        await signInWithCredential(auth, credential);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+    // Firebase session is applied from the auth response effect.
+    // Keep loading until onAuthStateChanged sets the user.
   };
 
   const sendOtp = async (
