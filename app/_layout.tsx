@@ -119,8 +119,13 @@ function ProtectedLayout() {
 
     const route = segments[0];
     const isAuthRoute = route === "login" || route === "auth";
+    const waitingForGoogle =
+      typeof window !== "undefined" &&
+      /[?&#](id_token|access_token|code|state)=/.test(
+        `${window.location.search}${window.location.hash}`,
+      );
 
-    if (!user && !isAuthRoute) {
+    if (!user && !isAuthRoute && !waitingForGoogle) {
       router.replace("/login");
     } else if (user && (isAuthRoute || route === "+not-found")) {
       router.replace("/");
