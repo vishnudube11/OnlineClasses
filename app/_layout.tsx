@@ -133,7 +133,12 @@ function ProtectedLayout() {
       return;
     }
 
-    if (!onLogin && !waitingForGoogle) {
+    const isAuthPopup =
+      typeof window !== "undefined" &&
+      !!window.opener &&
+      window.opener !== window;
+
+    if (!onLogin && !waitingForGoogle && !isAuthPopup) {
       router.replace("/login");
     }
   }, [user, isLoading, pathname, router]);

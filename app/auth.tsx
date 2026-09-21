@@ -11,6 +11,9 @@ export default function AuthCallbackScreen() {
   const router = useRouter();
 
   useEffect(() => {
+    if (typeof window !== "undefined" && window.opener && window.opener !== window) {
+      return;
+    }
     if (isLoading) return;
     router.replace(user ? "/" : "/login");
   }, [isLoading, user, router]);

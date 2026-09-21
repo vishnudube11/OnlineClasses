@@ -5,10 +5,13 @@ import type { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import * as WebBrowser from "expo-web-browser";
 import {
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
   PhoneAuthProvider,
   signInWithCredential,
   signInWithPhoneNumber,
+  signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";
@@ -19,40 +22,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { SITE_URL } from "@/src/seo/config";
 import { Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
-
-function clearGoogleCallbackUrl() {
-  if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  [
-    "code",
-    "state",
-    "scope",
-    "authuser",
-    "prompt",
-    "session_state",
-    "iss",
-    "error",
-    "error_description",
-  ].forEach((key) => url.searchParams.delete(key));
-  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
-  if (
-    /(^|[&#])(id_token|access_token|code|state|error)=/.test(hash)
-  ) {
-    url.hash = "";
-  }
-  const next = `${url.pathname}${url.search}${url.hash}` || "/";
-  window.history.replaceState(window.history.state, "", next);
-}
-
-function isGoogleAuthPath() {
-  if (typeof window === "undefined") return true;
-  const path = window.location.pathname.replace(/\/$/, "") || "/";
-  return path === "/login" || path === "/auth";
-}
 
 type User = {
   uid: string;
@@ -88,112 +60,38 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+function mapFirebaseUser(fbUser: FirebaseUser): User {
+  return {
+    uid: fbUser.uid,
+    name: fbUser.displayName || "Student",
+    email: fbUser.email || fbUser.phoneNumber || "",
+    avatar:
+      fbUser.photoURL ||
+      "https://ui-avatars.com/api/?name=" +
+        encodeURIComponent(fbUser.displayName || "Student") +
+        "&background=random",
+  };
+}
+
+function useFirebaseSession() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [recaptchaVerifier, setRecaptchaVerifier] =
     useState<FirebaseRecaptchaVerifierModal | null>(null);
   const [verificationId, setVerificationId] = useState<string | null>(null);
 
-  const googleClientIds = useMemo(
-    () => ({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    }),
-    [],
-  );
-
-  const redirectUri = useMemo(() => {
-    if (Platform.OS === "web") {
-      return `${SITE_URL}/auth`;
-    }
-    return makeRedirectUri({ path: "auth", scheme: "onlineclasses" });
-  }, []);
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: googleClientIds.webClientId,
-    androidClientId: googleClientIds.androidClientId,
-    redirectUri,
-  });
-
-  const handledGoogleToken = React.useRef<string | null>(null);
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (fbUser: FirebaseUser | null) => {
-      if (!fbUser) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-      setUser({
-        uid: fbUser.uid,
-        name: fbUser.displayName || "Student",
-        email:
-          fbUser.email ||
-          fbUser.phoneNumber ||
-          "",
-        avatar:
-          fbUser.photoURL ||
-          "https://ui-avatars.com/api/?name=" +
-            encodeURIComponent(fbUser.displayName || "Student") +
-            "&background=random",
-      });
-      if (isGoogleAuthPath()) {
-        clearGoogleCallbackUrl();
-      }
+      setUser(fbUser ? mapFirebaseUser(fbUser) : null);
       setIsLoading(false);
     });
-
-    return () => {
-      unsub();
-    };
+    return () => unsub();
   }, []);
 
   useEffect(() => {
-    if (!isGoogleAuthPath()) return;
-    const idToken =
-      response?.type === "success" ? response.params?.id_token : undefined;
-    if (!idToken || handledGoogleToken.current === idToken) return;
-    handledGoogleToken.current = idToken;
-
-    const run = async () => {
-      setIsLoading(true);
-      try {
-        const credential = GoogleAuthProvider.credential(idToken);
-        await signInWithCredential(auth, credential);
-        clearGoogleCallbackUrl();
-      } catch {
-        handledGoogleToken.current = null;
-        setIsLoading(false);
-      }
-    };
-
-    void run();
-  }, [response]);
-
-  const loginWithGoogle = async () => {
-    if (!googleClientIds.webClientId && !googleClientIds.androidClientId) {
-      throw new Error("Missing Google client IDs in env");
-    }
-    if (!request) {
-      throw new Error("Google sign-in is not ready. Refresh the page and try again.");
-    }
-
-    setIsLoading(true);
-    const result = await promptAsync();
-    if (!result || result.type === "cancel" || result.type === "dismiss") {
-      setIsLoading(false);
-      return;
-    }
-    if (result.type === "error") {
-      setIsLoading(false);
-      throw new Error(result.error?.message || "Google sign-in failed");
-    }
-    // Firebase session is applied from the auth response effect.
-    // Keep loading until onAuthStateChanged sets the user.
-  };
+    if (Platform.OS !== "web") return;
+    void getRedirectResult(auth).catch(() => {});
+  }, []);
 
   const sendOtp = async (
     phoneNumber: string,
@@ -234,6 +132,149 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     void signOut(auth);
   };
 
+  return {
+    user,
+    isLoading,
+    setIsLoading,
+    recaptchaVerifier,
+    setRecaptchaVerifier,
+    verificationId,
+    sendOtp,
+    verifyOtp,
+    logout,
+  };
+}
+
+function googleProvider() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
+}
+
+const WebAuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const session = useFirebaseSession();
+
+  const loginWithGoogle = async () => {
+    session.setIsLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider());
+    } catch (error: any) {
+      const code = String(error?.code || "");
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        return;
+      }
+      if (code === "auth/popup-blocked") {
+        await signInWithRedirect(auth, googleProvider());
+        return;
+      }
+      throw error;
+    } finally {
+      if (auth.currentUser) {
+        session.setIsLoading(false);
+      } else {
+        session.setIsLoading(false);
+      }
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user: session.user,
+        loginWithGoogle,
+        sendOtp: session.sendOtp,
+        verifyOtp: session.verifyOtp,
+        setRecaptchaVerifier: session.setRecaptchaVerifier,
+        verificationId: session.verificationId,
+        logout: session.logout,
+        isLoading: session.isLoading,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+const NativeAuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const session = useFirebaseSession();
+  const handledGoogleToken = React.useRef<string | null>(null);
+
+  const googleClientIds = useMemo(
+    () => ({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    }),
+    [],
+  );
+
+  const redirectUri = useMemo(
+    () => makeRedirectUri({ path: "auth", scheme: "onlineclasses" }),
+    [],
+  );
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: googleClientIds.webClientId,
+    androidClientId: googleClientIds.androidClientId,
+    redirectUri,
+  });
+
+  const {
+    user,
+    isLoading,
+    setIsLoading,
+    setRecaptchaVerifier,
+    verificationId,
+    sendOtp,
+    verifyOtp,
+    logout,
+  } = session;
+
+  useEffect(() => {
+    const idToken =
+      response?.type === "success" ? response.params?.id_token : undefined;
+    if (!idToken || handledGoogleToken.current === idToken) return;
+    handledGoogleToken.current = idToken;
+
+    const run = async () => {
+      setIsLoading(true);
+      try {
+        await signInWithCredential(
+          auth,
+          GoogleAuthProvider.credential(idToken),
+        );
+      } catch {
+        handledGoogleToken.current = null;
+        setIsLoading(false);
+      }
+    };
+
+    void run();
+  }, [response, setIsLoading]);
+
+  const loginWithGoogle = async () => {
+    if (!googleClientIds.webClientId && !googleClientIds.androidClientId) {
+      throw new Error("Missing Google client IDs in env");
+    }
+    if (!request) {
+      throw new Error("Google sign-in is not ready. Refresh the page and try again.");
+    }
+
+    setIsLoading(true);
+    const result = await promptAsync();
+    if (!result || result.type === "cancel" || result.type === "dismiss") {
+      setIsLoading(false);
+      return;
+    }
+    if (result.type === "error") {
+      setIsLoading(false);
+      throw new Error(result.error?.message || "Google sign-in failed");
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -250,4 +291,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  if (Platform.OS === "web") {
+    return <WebAuthProvider>{children}</WebAuthProvider>;
+  }
+  return <NativeAuthProvider>{children}</NativeAuthProvider>;
 };
