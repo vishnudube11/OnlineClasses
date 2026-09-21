@@ -13,6 +13,7 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signOut,
+  browserPopupRedirectResolver,
   type User as FirebaseUser,
 } from "firebase/auth";
 import React, {
@@ -90,7 +91,7 @@ function useFirebaseSession() {
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    void getRedirectResult(auth).catch(() => {});
+    void getRedirectResult(auth, browserPopupRedirectResolver).catch(() => {});
   }, []);
 
   const sendOtp = async (
@@ -159,14 +160,22 @@ const WebAuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const loginWithGoogle = async () => {
     session.setIsLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider());
+      await signInWithPopup(
+        auth,
+        googleProvider(),
+        browserPopupRedirectResolver,
+      );
     } catch (error: any) {
       const code = String(error?.code || "");
       if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
         return;
       }
       if (code === "auth/popup-blocked") {
-        await signInWithRedirect(auth, googleProvider());
+        await signInWithRedirect(
+          auth,
+          googleProvider(),
+          browserPopupRedirectResolver,
+        );
         return;
       }
       throw error;
