@@ -127,13 +127,18 @@ function ProtectedLayout() {
     const waitingForGoogle = isGoogleCallbackUrl();
 
     if (user) {
-      if (onLogin || pathname === "/+not-found") {
+      if (onLogin) {
         router.replace("/");
       }
       return;
     }
 
-    if (!onLogin && !waitingForGoogle) {
+    const isAuthPopup =
+      typeof window !== "undefined" &&
+      !!window.opener &&
+      window.opener !== window;
+
+    if (!onLogin && !waitingForGoogle && !isAuthPopup) {
       router.replace("/login");
     }
   }, [user, isLoading, pathname, router]);
