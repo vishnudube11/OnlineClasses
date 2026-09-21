@@ -118,7 +118,7 @@ export default function LoginScreen() {
               }
               setLoginError(
                 error?.message ||
-                  "Google sign-in failed. In Google Cloud, add https://www.online-classes.in/ as an Authorized redirect URI on the Web client.",
+                  "Google sign-in failed. In Google Cloud, add https://www.online-classes.in/auth as an Authorized redirect URI on the Web client.",
               );
             }
           }}

@@ -127,7 +127,7 @@ function ProtectedLayout() {
     const waitingForGoogle = isGoogleCallbackUrl();
 
     if (user) {
-      if (onLogin || pathname === "/+not-found") {
+      if (onLogin) {
         router.replace("/");
       }
       return;

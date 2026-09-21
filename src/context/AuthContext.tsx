@@ -48,6 +48,12 @@ function clearGoogleCallbackUrl() {
   window.history.replaceState(window.history.state, "", next);
 }
 
+function isGoogleAuthPath() {
+  if (typeof window === "undefined") return true;
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+  return path === "/login" || path === "/auth";
+}
+
 type User = {
   uid: string;
   name: string;
@@ -101,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const redirectUri = useMemo(() => {
     if (Platform.OS === "web") {
-      return `${SITE_URL}/`;
+      return `${SITE_URL}/auth`;
     }
     return makeRedirectUri({ path: "auth", scheme: "onlineclasses" });
   }, []);
@@ -134,7 +140,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             encodeURIComponent(fbUser.displayName || "Student") +
             "&background=random",
       });
-      clearGoogleCallbackUrl();
+      if (isGoogleAuthPath()) {
+        clearGoogleCallbackUrl();
+      }
       setIsLoading(false);
     });
 
@@ -144,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
+    if (!isGoogleAuthPath()) return;
     const idToken =
       response?.type === "success" ? response.params?.id_token : undefined;
     if (!idToken || handledGoogleToken.current === idToken) return;

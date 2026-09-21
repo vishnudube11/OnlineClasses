@@ -422,6 +422,10 @@ export default function VideoScreen() {
                   modestbranding: true,
                   rel: false,
                   iv_load_policy: 3,
+                  origin:
+                    Platform.OS === "web" && typeof window !== "undefined"
+                      ? window.location.origin
+                      : undefined,
                 }}
               />
             )}
