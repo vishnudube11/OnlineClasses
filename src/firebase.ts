@@ -3,6 +3,8 @@ import {
   getAuth,
   initializeAuth,
   indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
   type Auth,
 } from "firebase/auth";
 import firebase from "firebase/compat/app";
@@ -29,7 +31,8 @@ function createAuth(): Auth {
   if (Platform.OS === "web") {
     try {
       return initializeAuth(app, {
-        persistence: indexedDBLocalPersistence,
+        persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+        popupRedirectResolver: browserPopupRedirectResolver,
       });
     } catch {
       return getAuth(app);
