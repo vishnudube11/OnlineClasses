@@ -143,6 +143,12 @@ const COURSES = [
     gradient: ["#ff5f6d", "#ffc371"] as const,
   },
   {
+    id: "42",
+    title: "Learn Cape Verdean Creole",
+    icon: "globe" as const,
+    gradient: ["#003893", "#cf2027"] as const,
+  },
+  {
     id: "2",
     title: "Python",
     icon: "logo-python" as const,

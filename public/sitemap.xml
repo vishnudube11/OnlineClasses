@@ -56,6 +56,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.online-classes.in/course/Learn%20Cape%20Verdean%20Creole</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.online-classes.in/course/JEE%20Main</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
