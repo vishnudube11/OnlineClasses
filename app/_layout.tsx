@@ -13,7 +13,7 @@ import { useColorScheme } from "@/components/useColorScheme";
 import { AuthProvider, useAuth } from "@/src/context/AuthContext";
 import { logAccess } from "@/src/accessLog";
 import { i18n, loadSavedLanguage } from "@/src/i18n";
-import { DEFAULT_TITLE, SITE_NAME } from "@/src/seo/config";
+import { DEFAULT_TITLE, SITE_NAME, pageTitle } from "@/src/seo/config";
 import { I18nextProvider } from "react-i18next";
 
 export {
@@ -178,6 +178,10 @@ function ProtectedLayout() {
       <Stack.Screen
         name="pay/[category]"
         options={{ headerShown: false, title: `Checkout | ${SITE_NAME}` }}
+      />
+      <Stack.Screen
+        name="certificate"
+        options={{ headerShown: false, title: pageTitle("Download certificate") }}
       />
       <Stack.Screen name="modal" options={{ presentation: "modal", title: SITE_NAME }} />
     </Stack>

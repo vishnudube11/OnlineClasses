@@ -1182,13 +1182,22 @@ export default function CourseSelectionScreen() {
                 <Text style={styles.heroSubtext}>{visitorCountError}</Text>
               )}
             </View>
-            <Pressable
-              onPress={() => setShowLanguageSelector(true)}
-              style={styles.languagePill}
-            >
-              <Ionicons name="globe" size={16} color="#fff" />
-              <Text style={styles.logoutText}>{t("common.language")}</Text>
-            </Pressable>
+            <View style={styles.heroActions}>
+              <Pressable
+                onPress={() => router.push("/certificate" as any)}
+                style={styles.languagePill}
+              >
+                <Ionicons name="ribbon-outline" size={16} color="#fff" />
+                <Text style={styles.logoutText}>Certificate</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowLanguageSelector(true)}
+                style={styles.languagePill}
+              >
+                <Ionicons name="globe" size={16} color="#fff" />
+                <Text style={styles.logoutText}>{t("common.language")}</Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* Language Selector Modal */}
@@ -1408,6 +1417,10 @@ const styles = StyleSheet.create({
   heroSubtext: {
     fontSize: 14,
     color: "rgba(255,255,255,0.65)",
+  },
+  heroActions: {
+    alignItems: "flex-end",
+    gap: 8,
   },
   logoutText: {
     color: "#fff",
